@@ -7,11 +7,14 @@ import { supabase } from "@/lib/supabase-client";
 import { useSessionStore } from "@/store/use-session-store";
 import { authKeys } from "@/features/auth/auth.hooks";
 import { authApi } from "@/features/auth/auth.api";
+import { useNotificationSocket } from "@/features/notification/use-notification-socket";
+import { disconnectSocket } from "@/lib/socket-client";
 
 /**
  * Menyimak perubahan session Supabase dan sinkronkan ke:
  * - Zustand (useSessionStore)
  * - React Query cache (authKeys.me)
+ * - Socket.IO (notifikasi + chat real-time)
  *
  * Dipasang sekali di root layout.
  */
@@ -20,10 +23,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const setMe = useSessionStore((s) => s.setMe);
   const [ready, setReady] = useState(false);
 
+  // Real-time notifications (connect saat me tersedia)
+  useNotificationSocket();
+
   useEffect(() => {
     let mounted = true;
 
-    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
       handleSession(session);
@@ -41,19 +46,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!session) {
         setMe(null);
         queryClient.removeQueries({ queryKey: authKeys.me });
+        disconnectSocket();
         return;
       }
 
-      // Ada session → ambil profil dari engine
       try {
         const me = await authApi.me();
         setMe(me);
         queryClient.setQueryData(authKeys.me, me);
       } catch {
-        // Token valid di Supabase tapi belum terdaftar di engine
-        // (misalnya baru signUp tapi register profile gagal / belum dipanggil)
         setMe(null);
         queryClient.removeQueries({ queryKey: authKeys.me });
+        disconnectSocket();
       }
     }
 
@@ -63,7 +67,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [queryClient, setMe]);
 
-  // Hindari flash konten sebelum session dicek
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center">
