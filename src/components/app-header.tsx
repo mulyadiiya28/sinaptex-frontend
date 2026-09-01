@@ -5,6 +5,7 @@ import { PanelLeftClose, PanelLeftOpen, LogOut } from "lucide-react";
 import { useUIStore } from "@/store/use-ui-store";
 import { useSessionStore } from "@/store/use-session-store";
 import { useSignOut } from "@/features/auth/auth.hooks";
+import { NotificationBell } from "@/components/notification-bell";
 
 export function AppHeader() {
   const router = useRouter();
@@ -38,6 +39,8 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-3">
+        <NotificationBell />
+
         {me && (
           <span className="hidden text-sm text-zinc-600 sm:inline dark:text-zinc-400">
             {me.fullName}
