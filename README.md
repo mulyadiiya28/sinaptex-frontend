@@ -23,10 +23,13 @@ supaya gampang dilacak endpoint mana dipakai di komponen mana.
 ```
 src/
 ├── app/                      # Routing (App Router)
-├── components/                # Komponen UI reusable
-│   └── ui/
+│   ├── login/                # Halaman masuk (Supabase email/password)
+│   ├── register/             # Halaman daftar + sinkron profil ke engine
+│   └── page.tsx              # Home (auth-aware)
+├── components/
+│   └── auth-provider.tsx     # Listener onAuthStateChange + sync session
 ├── features/                  # 1 folder = 1 domain, cermin src/modules/ di engine
-│   ├── auth/                   # register sync + GET /api/auth/me
+│   ├── auth/                   # signIn/signUp/signOut + register sync + GET /api/auth/me
 │   ├── profile/                 # profil + party
 │   ├── verification/            # upload dokumen, status APPROVED/REJECTED
 │   ├── opportunity/              # Need/Offer, quota, status ACTIVE/CLOSED/…
@@ -65,15 +68,39 @@ npm run dev
 Jalankan juga repo engine secara terpisah (lihat README engine bagian "Setup") —
 default `http://localhost:4000`, prefix `/api` dan `/api/v1`, Swagger di `/api/docs`.
 
-## Alur auth
+## Alur auth (sudah terintegrasi)
 
-1. Login/register di client pakai Supabase (`src/lib/supabase-client.ts`).
-2. Setelah dapat session, panggil `useRegisterProfile()` (`features/auth`) sekali
-   untuk sinkron ke `users`/`profiles` di backend engine — sesuai README engine
-   `POST /api/auth/register`.
-3. `apiClient` (`src/lib/api-client.ts`) otomatis melampirkan
-   `Authorization: Bearer <supabase_access_token>` ke tiap request, jadi tidak perlu
-   set manual di tiap pemanggilan.
+1. **Register** (`/register`)
+   - User isi fullName, email, password (+ phone opsional).
+   - Client memanggil `supabase.auth.signUp()`.
+   - Jika session langsung tersedia (email confirmation dimatikan di Supabase),
+     otomatis panggil `POST /api/auth/register` untuk sinkron `users`/`profiles` di engine.
+   - Jika butuh konfirmasi email, tampilkan pesan "cek email".
+
+2. **Login** (`/login`)
+   - `supabase.auth.signInWithPassword()`.
+   - Setelah session aktif, `AuthProvider` memanggil `GET /api/auth/me` dan
+     menyimpan ke Zustand + React Query cache.
+
+3. **Session persistence**
+   - `AuthProvider` (`src/components/auth-provider.tsx`) listen
+     `onAuthStateChange` dan menjaga sinkronisasi session ↔ store ↔ cache.
+
+4. **API calls**
+   - `apiClient` otomatis melampirkan `Authorization: Bearer <supabase_access_token>`.
+
+5. **Logout**
+   - `useSignOut()` → `supabase.auth.signOut()` + clear store & query cache.
+
+### Hooks auth yang tersedia
+
+| Hook | Kegunaan |
+|------|----------|
+| `useSignIn()` | Login email/password |
+| `useSignUp()` | Register + sinkron profil engine |
+| `useSignOut()` | Logout |
+| `useMe()` | Ambil profil dari engine |
+| `useRegisterProfile()` | Sinkron profil manual (jika perlu) |
 
 ## Alur produk yang perlu diperhatikan di UI
 
