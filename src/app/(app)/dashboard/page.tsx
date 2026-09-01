@@ -1,14 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { Briefcase, MessageSquare, Handshake, Crown } from "lucide-react";
+import { Briefcase, MessageSquare, Handshake, Crown, Store } from "lucide-react";
 import { useSessionStore } from "@/store/use-session-store";
 import { useOpportunities } from "@/features/opportunity/opportunity.hooks";
 
 const cards = [
   {
+    href: "/marketplace",
+    label: "Marketplace",
+    desc: "Jelajahi Need & Offer publik",
+    icon: Store,
+  },
+  {
     href: "/opportunities",
-    label: "Opportunity",
+    label: "Opportunity saya",
     desc: "Kelola Need & Offer aktif",
     icon: Briefcase,
   },
@@ -34,14 +40,12 @@ const cards = [
 
 export default function DashboardPage() {
   const me = useSessionStore((s) => s.me);
-  const { data: myOpps, isLoading } = useOpportunities({ mine: true });
+  const { data, isLoading } = useOpportunities({ limit: 50 });
+  const myOpps = data?.data ?? [];
 
-  const activeCount =
-    myOpps?.filter((o) => o.status === "ACTIVE").length ?? 0;
-  const needCount =
-    myOpps?.filter((o) => o.type === "NEED" && o.status === "ACTIVE").length ?? 0;
-  const offerCount =
-    myOpps?.filter((o) => o.type === "OFFER" && o.status === "ACTIVE").length ?? 0;
+  const activeCount = myOpps.filter((o) => o.status === "ACTIVE").length;
+  const needCount = myOpps.filter((o) => o.type === "NEED" && o.status === "ACTIVE").length;
+  const offerCount = myOpps.filter((o) => o.type === "OFFER" && o.status === "ACTIVE").length;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -54,14 +58,12 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard label="Opportunity aktif" value={isLoading ? "…" : String(activeCount)} />
         <StatCard label="Need aktif" value={isLoading ? "…" : String(needCount)} />
         <StatCard label="Offer aktif" value={isLoading ? "…" : String(offerCount)} />
       </div>
 
-      {/* Quick links */}
       <div className="grid gap-4 sm:grid-cols-2">
         {cards.map((card) => {
           const Icon = card.icon;
