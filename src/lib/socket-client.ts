@@ -1,7 +1,7 @@
 import { io, Socket } from "socket.io-client";
 import { getAccessToken } from "@/lib/supabase-client";
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL ?? "https://cahayaastera.com").replace(/\/api\/v1\/?$/, "");
 
 let socket: Socket | null = null;
 

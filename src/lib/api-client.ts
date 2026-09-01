@@ -1,9 +1,9 @@
 import { getAccessToken } from "@/lib/supabase-client";
 
 /**
- * Base URL API engine. Default port 4000 sesuai README engine (Sinaptex — API Engine).
+ * Base URL API engine. Default ke server live Sinaptex (https://cahayaastera.com).
  */
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://cahayaastera.com").replace(/\/+$/, "");
 
 export type PaginationMeta = {
   page: number;
@@ -25,7 +25,17 @@ type FetchOptions = RequestInit & {
 };
 
 function buildUrl(path: string, params?: FetchOptions["params"]) {
-  const url = new URL(path, BASE_URL);
+  let cleanPath = path;
+  if (!cleanPath.startsWith("/")) {
+    cleanPath = `/${cleanPath}`;
+  }
+
+  // Jika BASE_URL sudah berakhiran /api/v1 dan path juga diawali /api/v1, hindari duplikasi
+  if (BASE_URL.endsWith("/api/v1") && cleanPath.startsWith("/api/v1/")) {
+    cleanPath = cleanPath.substring("/api/v1".length);
+  }
+
+  const url = new URL(`${BASE_URL}${cleanPath}`);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       if (value !== undefined && value !== null && value !== "") {
@@ -37,22 +47,39 @@ function buildUrl(path: string, params?: FetchOptions["params"]) {
 }
 
 async function requestRaw<T>(path: string, options: FetchOptions = {}): Promise<ApiEnvelope<T> | T> {
-  const { params, auth = true, headers, ...init } = options;
+  const { params, auth = true, headers, signal, ...init } = options;
 
   const authHeaders: Record<string, string> = {};
   if (auth) {
-    const token = await getAccessToken();
-    if (token) authHeaders.Authorization = `Bearer ${token}`;
+    try {
+      const token = await getAccessToken();
+      if (token) authHeaders.Authorization = `Bearer ${token}`;
+    } catch {
+      // ignore token fetch error if offline
+    }
   }
 
-  const res = await fetch(buildUrl(path, params), {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders,
-      ...headers,
-    },
-  });
+  // Gunakan AbortSignal timeout jika tidak disediakan secara custom
+  let fetchSignal = signal;
+  if (!fetchSignal && typeof AbortSignal !== "undefined" && "timeout" in AbortSignal) {
+    fetchSignal = AbortSignal.timeout(10_000);
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(buildUrl(path, params), {
+      ...init,
+      signal: fetchSignal,
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders,
+        ...headers,
+      },
+    });
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : "Network error / Server unreachable";
+    throw new Error(`Koneksi ke backend engine gagal: ${errorMsg}`);
+  }
 
   if (!res.ok) {
     let message = res.statusText;

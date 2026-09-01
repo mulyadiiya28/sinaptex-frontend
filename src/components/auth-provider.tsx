@@ -29,11 +29,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      handleSession(session);
-      setReady(true);
-    });
+    // Safety timeout: pastikan ready=true dalam maksimal 1.5 detik jika Supabase lambat/offline
+    const safetyTimer = setTimeout(() => {
+      if (mounted) {
+        setReady(true);
+      }
+    }, 1500);
+
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!mounted) return;
+        const session = data?.session ?? null;
+        handleSession(session);
+      })
+      .catch((err) => {
+        console.warn("[AuthProvider] Supabase session check error:", err);
+      })
+      .finally(() => {
+        if (mounted) {
+          setReady(true);
+          clearTimeout(safetyTimer);
+        }
+      });
 
     const {
       data: { subscription },
@@ -52,9 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       try {
         const me = await authApi.me();
+        if (!mounted) return;
         setMe(me);
         queryClient.setQueryData(authKeys.me, me);
-      } catch {
+      } catch (err) {
+        if (!mounted) return;
+        console.warn("[AuthProvider] Failed fetching me profile:", err);
         setMe(null);
         queryClient.removeQueries({ queryKey: authKeys.me });
         disconnectSocket();
@@ -63,6 +84,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
   }, [queryClient, setMe]);

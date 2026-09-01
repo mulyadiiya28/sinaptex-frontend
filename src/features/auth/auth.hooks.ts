@@ -16,6 +16,8 @@ export function useMe(enabled = true) {
     queryKey: authKeys.me,
     queryFn: authApi.me,
     enabled,
+    retry: false,
+    staleTime: 30 * 1000,
   });
 }
 
