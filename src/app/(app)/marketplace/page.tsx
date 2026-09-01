@@ -8,6 +8,7 @@ import {
   MarketplaceListParams,
   OpportunityType,
 } from "@/features/opportunity/opportunity.schema";
+import { MarketplaceGridSkeleton } from "@/components/skeleton";
 
 const TYPE_TABS: { label: string; type?: OpportunityType }[] = [
   { label: "Semua" },
@@ -160,9 +161,7 @@ export default function MarketplacePage() {
       )}
 
       {isLoading && (
-        <div className="flex justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
-        </div>
+        <MarketplaceGridSkeleton count={6} />
       )}
 
       {error && (

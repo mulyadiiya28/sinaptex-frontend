@@ -4,6 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { MapPin, Building2, ArrowLeft } from "lucide-react";
 import { useOpportunity } from "@/features/opportunity/opportunity.hooks";
+import { MarketplaceDetailSkeleton } from "@/components/skeleton";
 
 export default function MarketplaceDetailPage({
   params,
@@ -14,11 +15,7 @@ export default function MarketplaceDetailPage({
   const { data: opp, isLoading, error } = useOpportunity(id);
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
-      </div>
-    );
+    return <MarketplaceDetailSkeleton />;
   }
 
   if (error || !opp) {

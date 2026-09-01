@@ -18,6 +18,7 @@ import {
 import { useSessionStore } from "@/store/use-session-store";
 import { useOpportunities } from "@/features/opportunity/opportunity.hooks";
 import { useInvitations, useRespondInvitation } from "@/features/invitation/invitation.hooks";
+import { DashboardStatsSkeleton, DashboardInvitationsSkeleton } from "@/components/skeleton";
 
 const cards = [
   {
@@ -118,11 +119,15 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard label="Opportunity aktif" value={isLoading ? "…" : String(activeCount)} />
-        <StatCard label="Need aktif" value={isLoading ? "…" : String(needCount)} />
-        <StatCard label="Offer aktif" value={isLoading ? "…" : String(offerCount)} />
-      </div>
+      {isLoading ? (
+        <DashboardStatsSkeleton />
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-3">
+          <StatCard label="Opportunity aktif" value={String(activeCount)} />
+          <StatCard label="Need aktif" value={String(needCount)} />
+          <StatCard label="Offer aktif" value={String(offerCount)} />
+        </div>
+      )}
 
       {/* Pending Invitations Section */}
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
@@ -158,9 +163,7 @@ export default function DashboardPage() {
 
         <div className="mt-4">
           {isInvLoading ? (
-            <div className="flex justify-center py-6">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
-            </div>
+            <DashboardInvitationsSkeleton count={2} />
           ) : pendingInvitations.length === 0 ? (
             <div className="py-6 text-center text-xs text-zinc-500 dark:text-zinc-400">
               Tidak ada undangan matching tertunda. Jalankan matching pada opportunity Anda untuk mengundang calon mitra.

@@ -16,6 +16,7 @@ import { useOpportunity } from "@/features/opportunity/opportunity.hooks";
 import { useMatching } from "@/features/matching/matching.hooks";
 import { useCreateInvitation } from "@/features/invitation/invitation.hooks";
 import { MatchResult } from "@/features/matching/matching.schema";
+import { MatchingResultsSkeleton } from "@/components/skeleton";
 
 export default function MatchingPage({
   params,
@@ -138,12 +139,7 @@ export default function MatchingPage({
       </div>
 
       {isLoading && (
-        <div className="flex flex-col items-center justify-center py-20">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
-          <p className="mt-3 text-sm text-zinc-500 dark:text-zinc-400">
-            Menjalankan algoritma matching Sinaptex…
-          </p>
-        </div>
+        <MatchingResultsSkeleton count={3} />
       )}
 
       {error && (

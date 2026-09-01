@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { useOpportunities } from "@/features/opportunity/opportunity.hooks";
 import { OpportunityType } from "@/features/opportunity/opportunity.schema";
+import { OpportunitiesListSkeleton } from "@/components/skeleton";
 
 const filters: { label: string; type?: OpportunityType }[] = [
   { label: "Semua" },
@@ -74,9 +75,7 @@ export default function OpportunitiesPage() {
       </div>
 
       {isLoading && (
-        <div className="flex justify-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
-        </div>
+        <OpportunitiesListSkeleton count={4} />
       )}
 
       {error && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef, use } from "react";
+import { useState, useMemo, useRef, useEffect, use } from "react";
 import Link from "next/link";
 import {
   MessageSquare,
@@ -43,9 +43,16 @@ export default function ChatPage({
   }, [selectedConvId, targetOppId, conversations]);
 
   const { data: historyMessages, isLoading: isMsgLoading } = useMessages(activeConvId);
-  const { messages: socketMessages, sendMessage: sendViaSocket } = useChatSocket(activeConvId);
+  const {
+    messages: socketMessages,
+    sendMessage: sendViaSocket,
+    isTyping,
+    typingUser,
+    sendTyping,
+  } = useChatSocket(activeConvId);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Combine history, socket, and locally sent messages
   const allMessages = useMemo(() => {
@@ -57,6 +64,36 @@ export default function ChatPage({
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
   }, [historyMessages, socketMessages, sentMessages, activeConvId]);
+
+  // Auto scroll on new messages or typing indicator
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [allMessages, isTyping]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInputText(val);
+
+    if (!activeConvId) return;
+
+    if (val.trim()) {
+      sendTyping(true);
+
+      // Debounce stopping the typing status
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+      typingTimerRef.current = setTimeout(() => {
+        sendTyping(false);
+      }, 2000);
+    } else {
+      if (typingTimerRef.current) {
+        clearTimeout(typingTimerRef.current);
+      }
+      sendTyping(false);
+    }
+  };
+
 
   const activeConv: Conversation | undefined = conversations?.find((c) => c.id === activeConvId);
 
@@ -262,6 +299,23 @@ export default function ChatPage({
                     </div>
                   );
                 })}
+
+                {/* Typing indicator bubble */}
+                {isTyping && (
+                  <div className="flex flex-col items-start animate-fadeIn">
+                    <div className="flex items-center gap-2 rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-xs dark:border-zinc-800 dark:bg-zinc-900">
+                      <div className="flex items-center gap-1">
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.3s] dark:bg-zinc-500" />
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 [animation-delay:-0.15s] dark:bg-zinc-500" />
+                        <span className="h-2 w-2 animate-bounce rounded-full bg-zinc-400 dark:bg-zinc-500" />
+                      </div>
+                      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                        {typingUser?.userName ? `${typingUser.userName} sedang mengetik…` : "Partner sedang mengetik…"}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
                 <div ref={messagesEndRef} />
               </div>
 
@@ -274,7 +328,7 @@ export default function ChatPage({
                   <input
                     type="text"
                     value={inputText}
-                    onChange={(e) => setInputText(e.target.value)}
+                    onChange={handleInputChange}
                     placeholder="Ketik pesan..."
                     className="flex-1 rounded-xl border border-zinc-300 bg-white px-4 py-2.5 text-sm outline-none ring-zinc-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-50 dark:ring-zinc-100"
                   />
@@ -287,6 +341,7 @@ export default function ChatPage({
                   </button>
                 </div>
               </form>
+
             </>
           ) : (
             <div className="flex h-full flex-col items-center justify-center p-6 text-center text-zinc-500">
