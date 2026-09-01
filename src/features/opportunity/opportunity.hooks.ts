@@ -2,22 +2,28 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { opportunityApi } from "./opportunity.api";
 import {
   CreateOpportunityInput,
+  MarketplaceListParams,
   OPPORTUNITY_QUOTA_EXCEEDED,
-  OpportunityType,
 } from "./opportunity.schema";
 
 export const opportunityKeys = {
   all: ["opportunities"] as const,
-  list: (params?: { type?: OpportunityType; mine?: boolean }) =>
-    ["opportunities", "list", params] as const,
+  list: (params?: MarketplaceListParams) => ["opportunities", "list", params] as const,
   detail: (id: string) => ["opportunities", "detail", id] as const,
 };
 
-export function useOpportunities(params?: { type?: OpportunityType; mine?: boolean }) {
+/** Marketplace / list publik dengan filter + pagination. */
+export function useMarketplace(params?: MarketplaceListParams) {
   return useQuery({
     queryKey: opportunityKeys.list(params),
     queryFn: () => opportunityApi.list(params),
+    placeholderData: (prev) => prev,
   });
+}
+
+/** Alias lama — dipakai dashboard & "milik saya" (client-side filter bila perlu). */
+export function useOpportunities(params?: MarketplaceListParams) {
+  return useMarketplace(params);
 }
 
 export function useOpportunity(id: string) {
@@ -28,12 +34,6 @@ export function useOpportunity(id: string) {
   });
 }
 
-/**
- * Quota berdasarkan status membership (README engine bagian 3):
- * non-member 1 ACTIVE Need + 1 ACTIVE Offer, member aktif 20 + 20.
- * Backend melempar `OPPORTUNITY_QUOTA_EXCEEDED` saat quota habis — tangkap
- * pesan ini di UI untuk arahkan user upgrade membership.
- */
 export function useCreateOpportunity() {
   const queryClient = useQueryClient();
 
@@ -44,13 +44,23 @@ export function useCreateOpportunity() {
     },
     onError: (error: Error) => {
       if (error.message.includes(OPPORTUNITY_QUOTA_EXCEEDED)) {
-        // Lempar ulang dengan pesan ramah pengguna; komponen pemanggil
-        // bisa menampilkan CTA upgrade membership.
         throw new Error(
           "Kuota posting aktif sudah penuh. Tutup posting lama atau upgrade membership."
         );
       }
       throw error;
+    },
+  });
+}
+
+export function useCloseOpportunity() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => opportunityApi.close(id),
+    onSuccess: (_data, id) => {
+      queryClient.invalidateQueries({ queryKey: opportunityKeys.all });
+      queryClient.invalidateQueries({ queryKey: opportunityKeys.detail(id) });
     },
   });
 }
