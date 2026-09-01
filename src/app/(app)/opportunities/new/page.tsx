@@ -1,0 +1,190 @@
+"use client";
+
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useCreateOpportunity } from "@/features/opportunity/opportunity.hooks";
+import {
+  CreateOpportunityInput,
+  OpportunityType,
+  createOpportunitySchema,
+} from "@/features/opportunity/opportunity.schema";
+
+export default function NewOpportunityPage() {
+  const router = useRouter();
+  const create = useCreateOpportunity();
+  const [type, setType] = useState<OpportunityType>("NEED");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [categoryId, setCategoryId] = useState("general");
+  const [location, setLocation] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setFieldErrors({});
+
+    const payload: CreateOpportunityInput = {
+      type,
+      title,
+      description,
+      categoryId,
+      location: location || undefined,
+    };
+
+    const parsed = createOpportunitySchema.safeParse(payload);
+    if (!parsed.success) {
+      const errs: Record<string, string> = {};
+      parsed.error.issues.forEach((issue) => {
+        const key = issue.path[0]?.toString() ?? "form";
+        errs[key] = issue.message;
+      });
+      setFieldErrors(errs);
+      return;
+    }
+
+    try {
+      const opp = await create.mutateAsync(parsed.data);
+      router.replace(`/opportunities/${opp.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Gagal membuat opportunity");
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-xl space-y-6">
+      <div>
+        <Link
+          href="/opportunities"
+          className="text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+        >
+          ← Kembali
+        </Link>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
+          Buat Opportunity
+        </h1>
+        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+          Posting Need (mencari) atau Offer (menawarkan).
+        </p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-5 rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+        {/* Type */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Tipe
+          </label>
+          <div className="flex gap-2">
+            {(["NEED", "OFFER"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setType(t)}
+                className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition ${
+                  type === t
+                    ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-50 dark:bg-zinc-50 dark:text-zinc-900"
+                    : "border-zinc-300 text-zinc-600 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                }`}
+              >
+                {t === "NEED" ? "Need (mencari)" : "Offer (menawarkan)"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Title */}
+        <div>
+          <label htmlFor="title" className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Judul
+          </label>
+          <input
+            id="title"
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm outline-none ring-zinc-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:ring-zinc-100"
+            placeholder="Contoh: Butuh supplier kemasan biodegradable"
+          />
+          {fieldErrors.title && (
+            <p className="mt-1 text-xs text-red-600">{fieldErrors.title}</p>
+          )}
+        </div>
+
+        {/* Description */}
+        <div>
+          <label htmlFor="description" className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Deskripsi
+          </label>
+          <textarea
+            id="description"
+            required
+            rows={5}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm outline-none ring-zinc-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:ring-zinc-100"
+            placeholder="Jelaskan kebutuhan atau penawaran Anda secara detail…"
+          />
+          {fieldErrors.description && (
+            <p className="mt-1 text-xs text-red-600">{fieldErrors.description}</p>
+          )}
+        </div>
+
+        {/* Category (sementara free-text id) */}
+        <div>
+          <label htmlFor="categoryId" className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Kategori
+          </label>
+          <input
+            id="categoryId"
+            required
+            value={categoryId}
+            onChange={(e) => setCategoryId(e.target.value)}
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm outline-none ring-zinc-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:ring-zinc-100"
+            placeholder="general"
+          />
+          {fieldErrors.categoryId && (
+            <p className="mt-1 text-xs text-red-600">{fieldErrors.categoryId}</p>
+          )}
+        </div>
+
+        {/* Location */}
+        <div>
+          <label htmlFor="location" className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Lokasi <span className="font-normal text-zinc-400">(opsional)</span>
+          </label>
+          <input
+            id="location"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            className="w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm outline-none ring-zinc-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:ring-zinc-100"
+            placeholder="Jakarta, Indonesia"
+          />
+        </div>
+
+        {error && (
+          <div className="rounded-lg bg-red-50 px-3.5 py-2.5 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-400">
+            {error}
+          </div>
+        )}
+
+        <div className="flex gap-3 pt-1">
+          <button
+            type="submit"
+            disabled={create.isPending}
+            className="flex-1 rounded-lg bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-60 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            {create.isPending ? "Menyimpan…" : "Publikasikan"}
+          </button>
+          <Link
+            href="/opportunities"
+            className="rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            Batal
+          </Link>
+        </div>
+      </form>
+    </div>
+  );
+}
