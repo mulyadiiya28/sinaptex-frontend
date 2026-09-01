@@ -6,25 +6,63 @@ const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 let socket: Socket | null = null;
 
 /**
- * Socket.IO singleton untuk chat real-time. Dipasang di port yang sama dengan
- * API (lihat README engine bagian "Chat WebSocket").
- * Panggil `connectSocket()` setelah user login, dan `disconnectSocket()` saat logout.
+ * Socket.IO singleton untuk chat + notifikasi real-time.
+ *
+ * Heartbeat dikelola Engine.IO di sisi server (`pingInterval` / `pingTimeout`).
+ * Client otomatis membalas ping; jika timeout, koneksi putus lalu reconnect.
+ *
+ * Panggil `connectSocket()` setelah login, `disconnectSocket()` saat logout.
  */
 export async function connectSocket(): Promise<Socket> {
   if (socket?.connected) return socket;
+
+  // Buang instance lama yang sedang reconnect dengan token basi
+  if (socket) {
+    socket.removeAllListeners();
+    socket.disconnect();
+    socket = null;
+  }
 
   const token = await getAccessToken();
 
   socket = io(SOCKET_URL, {
     auth: { token },
     autoConnect: true,
+    // Selaras dengan server: utamakan WebSocket murni
+    transports: ["websocket", "polling"],
+    // Reconnect setelah putus (termasuk karena ping timeout)
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1_000,
+    reconnectionDelayMax: 10_000,
+    // Timeout handshake awal (ms)
+    timeout: 20_000,
+  });
+
+  // Setiap percobaan reconnect: kirim access token terbaru
+  socket.io.on("reconnect_attempt", async () => {
+    const latest = await getAccessToken();
+    if (socket) {
+      socket.auth = { token: latest };
+    }
+  });
+
+  socket.on("connect_error", (err) => {
+    console.warn("[socket] connect_error:", err.message);
+  });
+
+  socket.on("session:replaced", () => {
+    console.info("[socket] session replaced by another tab/device");
   });
 
   return socket;
 }
 
 export function disconnectSocket() {
-  socket?.disconnect();
+  if (!socket) return;
+  socket.removeAllListeners();
+  socket.io.removeAllListeners();
+  socket.disconnect();
   socket = null;
 }
 
