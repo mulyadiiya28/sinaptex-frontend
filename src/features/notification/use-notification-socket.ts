@@ -11,7 +11,7 @@ import { prependNotification } from "./notification.hooks";
  * Hubungkan Socket.IO saat user login dan listen event `notification:new`
  * dari engine (room profile:{profileId}).
  *
- * Pasang sekali di AuthProvider / root client tree.
+ * Pasang sekali di AuthProvider.
  */
 export function useNotificationSocket() {
   const queryClient = useQueryClient();
@@ -25,32 +25,29 @@ export function useNotificationSocket() {
 
     let cancelled = false;
 
+    const onNotification = (payload: AppNotification) => {
+      const createdAt =
+        typeof payload.createdAt === "string"
+          ? payload.createdAt
+          : new Date(payload.createdAt as unknown as string).toISOString();
+
+      prependNotification(queryClient, {
+        ...payload,
+        isRead: payload.isRead ?? false,
+        createdAt,
+      });
+    };
+
     connectSocket().then((socket) => {
       if (cancelled) return;
-
-      const onNotification = (payload: AppNotification) => {
-        prependNotification(queryClient, {
-          ...payload,
-          isRead: payload.isRead ?? false,
-          createdAt:
-            typeof payload.createdAt === "string"
-              ? payload.createdAt
-              : new Date(payload.createdAt as unknown as string).toISOString(),
-        });
-      };
-
-      socket.on("notification:new", onNotification);
-
-      // Cleanup listener saat effect re-run (jangan disconnect di sini —
-      // disconnect hanya saat logout / me null)
-      socket.off?.("notification:new"); // ensure no duplicate from hot reload
+      socket.off("notification:new", onNotification);
       socket.on("notification:new", onNotification);
     });
 
     return () => {
       cancelled = true;
       const s = getSocket();
-      s?.off("notification:new");
+      s?.off("notification:new", onNotification);
     };
   }, [me, queryClient]);
 }
