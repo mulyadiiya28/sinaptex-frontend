@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSignUp } from "@/features/auth/auth.hooks";
@@ -17,9 +17,16 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [needsConfirm, setNeedsConfirm] = useState(false);
 
+  useEffect(() => {
+    if (me) router.replace("/dashboard");
+  }, [me, router]);
+
   if (me) {
-    router.replace("/");
-    return null;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+      </div>
+    );
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -41,10 +48,8 @@ export default function RegisterPage() {
       });
 
       if (result.profile) {
-        // Session + profil engine siap → langsung masuk
-        router.replace("/");
+        router.replace("/dashboard");
       } else {
-        // Butuh konfirmasi email
         setNeedsConfirm(true);
       }
     } catch (err) {
