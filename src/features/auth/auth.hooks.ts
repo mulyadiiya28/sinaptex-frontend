@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase-client";
+import { disconnectSocket } from "@/lib/socket-client";
 import { useSessionStore } from "@/store/use-session-store";
 import { authApi } from "./auth.api";
 import { RegisterProfileInput } from "./auth.schema";
@@ -49,7 +50,6 @@ export function useSignIn() {
       return data;
     },
     onSuccess: () => {
-      // Session berubah → AuthProvider + onAuthStateChange akan trigger refetch me
       queryClient.invalidateQueries({ queryKey: authKeys.me });
     },
   });
@@ -68,7 +68,6 @@ export function useSignUp() {
 
   return useMutation({
     mutationFn: async ({ email, password, fullName, phone }: SignUpInput) => {
-      // 1. Daftar di Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -78,8 +77,6 @@ export function useSignUp() {
       });
       if (error) throw error;
 
-      // 2. Jika session langsung tersedia (email confirm dimatikan),
-      //    sinkronkan profil ke engine.
       if (data.session) {
         const profile = await authApi.register({
           fullName,
@@ -89,7 +86,6 @@ export function useSignUp() {
         return { supabase: data, profile };
       }
 
-      // Kalau butuh konfirmasi email, session null — user harus verify dulu.
       return { supabase: data, profile: null };
     },
     onSuccess: (result) => {
@@ -112,6 +108,7 @@ export function useSignOut() {
       if (error) throw error;
     },
     onSuccess: () => {
+      disconnectSocket();
       setMe(null);
       queryClient.removeQueries({ queryKey: authKeys.me });
       queryClient.clear();
