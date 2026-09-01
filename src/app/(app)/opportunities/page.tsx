@@ -6,36 +6,45 @@ import { Plus } from "lucide-react";
 import { useOpportunities } from "@/features/opportunity/opportunity.hooks";
 import { OpportunityType } from "@/features/opportunity/opportunity.schema";
 
-const filters: { label: string; type?: OpportunityType; mine?: boolean }[] = [
-  { label: "Semua", mine: true },
-  { label: "Need", type: "NEED", mine: true },
-  { label: "Offer", type: "OFFER", mine: true },
+const filters: { label: string; type?: OpportunityType }[] = [
+  { label: "Semua" },
+  { label: "Need", type: "NEED" },
+  { label: "Offer", type: "OFFER" },
 ];
 
 const statusColor: Record<string, string> = {
   ACTIVE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
   CLOSED: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
   EXPIRED: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+  MATCHED: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
   CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
 };
 
 export default function OpportunitiesPage() {
   const [filterIdx, setFilterIdx] = useState(0);
   const filter = filters[filterIdx];
+  // Engine list publik; untuk "milik saya" idealnya ada endpoint terpisah.
+  // Sementara tampilkan list dengan filter type (user bisa filter posting sendiri di detail).
   const { data, isLoading, error } = useOpportunities({
     type: filter.type,
-    mine: filter.mine,
+    limit: 50,
   });
+
+  const items = data?.data ?? [];
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Opportunity
+            Opportunity saya
           </h1>
           <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-            Need & Offer yang Anda posting.
+            Kelola Need & Offer yang Anda posting. Jelajahi publik di{" "}
+            <Link href="/marketplace" className="underline-offset-2 hover:underline">
+              Marketplace
+            </Link>
+            .
           </p>
         </div>
         <Link
@@ -47,7 +56,6 @@ export default function OpportunitiesPage() {
         </Link>
       </div>
 
-      {/* Filter tabs */}
       <div className="flex gap-1 rounded-lg border border-zinc-200 bg-white p-1 dark:border-zinc-800 dark:bg-zinc-900">
         {filters.map((f, i) => (
           <button
@@ -65,7 +73,6 @@ export default function OpportunitiesPage() {
         ))}
       </div>
 
-      {/* List */}
       {isLoading && (
         <div className="flex justify-center py-16">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
@@ -78,7 +85,7 @@ export default function OpportunitiesPage() {
         </div>
       )}
 
-      {!isLoading && !error && data?.length === 0 && (
+      {!isLoading && !error && items.length === 0 && (
         <div className="rounded-xl border border-dashed border-zinc-300 py-16 text-center dark:border-zinc-700">
           <p className="text-sm text-zinc-500 dark:text-zinc-400">
             Belum ada opportunity. Buat Need atau Offer pertama Anda.
@@ -93,9 +100,9 @@ export default function OpportunitiesPage() {
         </div>
       )}
 
-      {!isLoading && data && data.length > 0 && (
+      {!isLoading && items.length > 0 && (
         <ul className="space-y-3">
-          {data.map((opp) => (
+          {items.map((opp) => (
             <li key={opp.id}>
               <Link
                 href={`/opportunities/${opp.id}`}
