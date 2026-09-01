@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@/features/auth/auth.hooks";
@@ -14,10 +14,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  // Sudah login → redirect
+  useEffect(() => {
+    if (me) router.replace("/dashboard");
+  }, [me, router]);
+
   if (me) {
-    router.replace("/");
-    return null;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+      </div>
+    );
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -26,7 +32,7 @@ export default function LoginPage() {
 
     try {
       await signIn.mutateAsync({ email, password });
-      router.replace("/");
+      router.replace("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal masuk");
     }
