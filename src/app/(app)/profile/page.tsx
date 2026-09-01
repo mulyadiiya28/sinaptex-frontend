@@ -11,11 +11,9 @@ import {
 } from "lucide-react";
 import { useSessionStore } from "@/store/use-session-store";
 import { useProfile, useUpdateProfile } from "@/features/profile/profile.hooks";
-import {
-  useMyVerifications,
-  useSubmitVerification,
-} from "@/features/verification/verification.hooks";
+import { useMyVerifications, useSubmitVerification } from "@/features/verification/verification.hooks";
 import { PushNotificationSettings } from "@/components/push-notification-settings";
+import { SinaptexLogo } from "@/components/sinaptex-logo";
 
 export default function ProfilePage() {
   const me = useSessionStore((s) => s.me);
@@ -411,6 +409,20 @@ export default function ProfilePage() {
       {/* PWA & Push Notification Settings */}
       <div className="border-t border-zinc-200 pt-6 dark:border-zinc-800">
         <PushNotificationSettings />
+      </div>
+
+      {/* Brand Ecosystem Info Banner */}
+      <div className="rounded-2xl border border-zinc-200 bg-gradient-to-br from-zinc-50 to-white p-6 shadow-sm dark:border-zinc-800 dark:from-zinc-900 dark:to-zinc-950">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <SinaptexLogo
+            variant="horizontal"
+            size="md"
+            taglineText="Ekosistem Bisnis dan Layanan Cerdas"
+          />
+          <div className="text-xs text-zinc-500 dark:text-zinc-400">
+            Terdaftar & Terverifikasi pada Jaringan Sinergi Bisnis Nasional
+          </div>
+        </div>
       </div>
     </div>
   );

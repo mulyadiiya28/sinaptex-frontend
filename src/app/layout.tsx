@@ -16,9 +16,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sinaptex — Temukan mitra bisnis yang tepat",
+  title: "Sinaptex — Ekosistem Bisnis dan Layanan Cerdas",
   description:
-    "Sinaptex mencocokkan kebutuhan dan penawaran bisnis Anda dengan mitra yang tepat, lengkap dengan verifikasi, chat, dan pengelolaan deal.",
+    "Ekosistem Bisnis dan Layanan Cerdas — Platform business matching untuk mencocokkan kebutuhan, penawaran, dan transaksi kemitraan.",
+  openGraph: {
+    title: "Sinaptex — Ekosistem Bisnis dan Layanan Cerdas",
+    description:
+      "Ekosistem Bisnis dan Layanan Cerdas — Platform business matching untuk mencocokkan kebutuhan, penawaran, dan transaksi kemitraan.",
+    siteName: "Sinaptex",
+  },
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,

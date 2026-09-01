@@ -6,6 +6,7 @@ import { useUIStore } from "@/store/use-ui-store";
 import { useSessionStore } from "@/store/use-session-store";
 import { useSignOut } from "@/features/auth/auth.hooks";
 import { NotificationBell } from "@/components/notification-bell";
+import { SinaptexLogo } from "@/components/sinaptex-logo";
 
 export function AppHeader() {
   const router = useRouter();
@@ -33,9 +34,9 @@ export function AppHeader() {
             <PanelLeftOpen className="h-4 w-4" />
           )}
         </button>
-        <span className="text-sm font-medium text-zinc-500 md:hidden dark:text-zinc-400">
-          Sinaptex
-        </span>
+        <div className="md:hidden">
+          <SinaptexLogo variant="compact" size="xs" />
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

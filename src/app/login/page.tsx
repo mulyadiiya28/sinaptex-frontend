@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@/features/auth/auth.hooks";
 import { useSessionStore } from "@/store/use-session-store";
+import { SinaptexLogo } from "@/components/sinaptex-logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -39,14 +40,18 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 dark:bg-zinc-950">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="text-center">
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-            Masuk ke Sinaptex
-          </h1>
-          <p className="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-            Platform business matching
+    <div className="flex min-h-screen items-center justify-center bg-zinc-50 px-4 py-8 dark:bg-zinc-950">
+      <div className="w-full max-w-md space-y-6 rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+        <div className="flex flex-col items-center text-center">
+          <Link href="/" className="mb-2 transition hover:opacity-90">
+            <SinaptexLogo
+              variant="vertical"
+              size="lg"
+              taglineText="Ekosistem Bisnis dan Layanan Cerdas"
+            />
+          </Link>
+          <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+            Masuk ke akun Anda untuk mengakses business matching
           </p>
         </div>
 

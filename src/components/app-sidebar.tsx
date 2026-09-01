@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { useUIStore } from "@/store/use-ui-store";
 import { usePWA } from "@/components/pwa-provider";
+import { SinaptexLogo } from "@/components/sinaptex-logo";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -46,13 +47,16 @@ export function AppSidebar() {
 
       {/* Sidebar Container */}
       <aside className="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-zinc-200 bg-white shadow-xl dark:border-zinc-800 dark:bg-zinc-900 md:static md:w-56 md:shadow-none">
-        <div className="flex h-14 items-center justify-between border-b border-zinc-200 px-4 dark:border-zinc-800">
+        <div className="flex h-16 items-center justify-between border-b border-zinc-200 px-3.5 dark:border-zinc-800">
           <Link
             href="/dashboard"
             onClick={() => setSidebarOpen(false)}
-            className="text-lg font-semibold text-zinc-900 dark:text-zinc-50"
+            className="flex items-center min-w-0 transition hover:opacity-90"
           >
-            Sinaptex
+            <SinaptexLogo
+              variant="compact"
+              size="sm"
+            />
           </Link>
           <button
             type="button"

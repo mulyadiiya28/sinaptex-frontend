@@ -1,21 +1,51 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
-    <linearGradient id="bgMask" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="bgMask512" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#18181b"/>
       <stop offset="100%" stop-color="#09090b"/>
     </linearGradient>
-    <linearGradient id="accMask" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3b82f6"/>
-      <stop offset="100%" stop-color="#6366f1"/>
+    <linearGradient id="sMaskGrad" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="35%" stop-color="#3b82f6"/>
+      <stop offset="70%" stop-color="#6366f1"/>
+      <stop offset="100%" stop-color="#a855f7"/>
     </linearGradient>
+    <radialGradient id="nodeMask" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="60%" stop-color="#60a5fa"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </radialGradient>
   </defs>
-  <!-- Full bleed for maskable -->
-  <rect width="512" height="512" fill="url(#bgMask)"/>
-  <!-- Safe zone contained graphic -->
-  <circle cx="190" cy="195" r="30" fill="url(#accMask)"/>
-  <circle cx="322" cy="317" r="30" fill="url(#accMask)"/>
-  <circle cx="322" cy="195" r="22" fill="#38bdf8"/>
-  <circle cx="190" cy="317" r="22" fill="#818cf8"/>
-  <path d="M190 195 C 256 195, 256 317, 322 317" stroke="url(#accMask)" stroke-width="18" stroke-linecap="round" fill="none"/>
-  <path d="M322 195 C 280 195, 230 317, 190 317" stroke="#ffffff" stroke-opacity="0.35" stroke-width="8" stroke-linecap="round" stroke-dasharray="8 12" fill="none"/>
+  
+  <!-- Full Bleed Maskable Canvas -->
+  <rect width="512" height="512" fill="url(#bgMask512)"/>
+
+  <!-- S Logo Safe-zone (within 80% circle) -->
+  <path
+    d="M336 174 C336 138, 302 115, 256 115 C200 115, 166 145, 166 188 C166 235, 210 256, 256 266 C312 277, 344 300, 344 345 C344 391, 302 414, 250 414 C194 414, 160 383, 160 345"
+    stroke="url(#sMaskGrad)"
+    stroke-width="36"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+
+  <path
+    d="M328 182 C328 213, 290 234, 250 245 C200 260, 174 282, 174 324"
+    stroke="#ffffff"
+    stroke-opacity="0.4"
+    stroke-width="9"
+    stroke-linecap="round"
+    fill="none"
+  />
+
+  <!-- Nodes -->
+  <circle cx="336" cy="174" r="19" fill="url(#nodeMask)"/>
+  <circle cx="336" cy="174" r="8" fill="#ffffff"/>
+
+  <circle cx="256" cy="266" r="16" fill="#38bdf8"/>
+  <circle cx="256" cy="266" r="6" fill="#ffffff"/>
+
+  <circle cx="160" cy="345" r="19" fill="url(#nodeMask)"/>
+  <circle cx="160" cy="345" r="8" fill="#ffffff"/>
 </svg>
