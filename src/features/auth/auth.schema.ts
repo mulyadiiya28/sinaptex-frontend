@@ -14,6 +14,7 @@ export const meResponseSchema = z.object({
   id: z.string(),
   email: z.string().email(),
   fullName: z.string(),
+  phone: z.string().nullable().optional(),
   isVerified: z.boolean().default(false),
 });
 export type Me = z.infer<typeof meResponseSchema>;

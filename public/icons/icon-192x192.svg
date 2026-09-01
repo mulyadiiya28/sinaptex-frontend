@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18181b"/>
+      <stop offset="100%" stop-color="#09090b"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#6366f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="42" fill="url(#grad1)"/>
+  <!-- Central Stylized S / Synapse Node -->
+  <circle cx="64" cy="68" r="14" fill="url(#accent)"/>
+  <circle cx="128" cy="124" r="14" fill="url(#accent)"/>
+  <circle cx="128" cy="68" r="10" fill="#38bdf8"/>
+  <circle cx="64" cy="124" r="10" fill="#818cf8"/>
+  <path d="M64 68 C 96 68, 96 124, 128 124" stroke="url(#accent)" stroke-width="8" stroke-linecap="round" fill="none"/>
+  <path d="M128 68 C 110 68, 82 124, 64 124" stroke="#ffffff" stroke-opacity="0.3" stroke-width="4" stroke-linecap="round" stroke-dasharray="4 6" fill="none"/>
+</svg>

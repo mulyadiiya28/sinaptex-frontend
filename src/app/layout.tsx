@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { QueryProvider } from "@/lib/query-provider";
 import { AuthProvider } from "@/components/auth-provider";
+import { PwaProvider } from "@/components/pwa-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,9 +19,38 @@ export const metadata: Metadata = {
   title: "Sinaptex — Temukan mitra bisnis yang tepat",
   description:
     "Sinaptex mencocokkan kebutuhan dan penawaran bisnis Anda dengan mitra yang tepat, lengkap dengan verifikasi, chat, dan pengelolaan deal.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Sinaptex",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192x192.svg", sizes: "192x192", type: "image/svg+xml" },
+      { url: "/icons/icon-512x512.svg", sizes: "512x512", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/icons/icon-192x192.svg", sizes: "192x192", type: "image/svg+xml" },
+    ],
+  },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export const viewport: Viewport = {
+  themeColor: "#09090b",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html
       lang="id"
@@ -28,7 +58,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <QueryProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <PwaProvider>{children}</PwaProvider>
+          </AuthProvider>
         </QueryProvider>
       </body>
     </html>

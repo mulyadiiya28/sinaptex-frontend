@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { connectSocket, disconnectSocket, getSocket } from "@/lib/socket-client";
 import { useSessionStore } from "@/store/use-session-store";
-import { AppNotification } from "./notification.schema";
+import { sendLocalNotification } from "@/lib/push-manager";
+import { AppNotification, notificationText } from "./notification.schema";
 import { prependNotification } from "./notification.hooks";
 
 /**
@@ -36,6 +37,17 @@ export function useNotificationSocket() {
         isRead: payload.isRead ?? false,
         createdAt,
       });
+
+      // Show native OS / Web Push Notification if permission granted
+      try {
+        const text = notificationText(payload);
+        sendLocalNotification(payload.title || "Sinaptex Notifikasi", {
+          body: text || "Ada aktivitas baru pada akun bisnis Anda.",
+          url: "/notifications",
+        });
+      } catch {
+        // non-blocking
+      }
     };
 
     connectSocket().then((socket) => {
