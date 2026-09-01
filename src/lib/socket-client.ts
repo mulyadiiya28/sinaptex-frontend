@@ -47,6 +47,18 @@ export async function connectSocket(): Promise<Socket> {
     }
   });
 
+  socket.on("connect", () => {
+    if (process.env.NODE_ENV === "development") {
+      console.info("[socket] connected", socket?.id);
+    }
+  });
+
+  socket.on("disconnect", (reason) => {
+    // reason: io client disconnect | io server disconnect | ping timeout |
+    //         transport close | transport error | ...
+    console.info("[socket] disconnect", reason);
+  });
+
   socket.on("connect_error", (err) => {
     console.warn("[socket] connect_error:", err.message);
   });
