@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
+  Store,
   Briefcase,
   MessageSquare,
   Handshake,
@@ -15,7 +16,8 @@ import { useUIStore } from "@/store/use-ui-store";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/opportunities", label: "Opportunity", icon: Briefcase },
+  { href: "/marketplace", label: "Marketplace", icon: Store },
+  { href: "/opportunities", label: "Opportunity saya", icon: Briefcase },
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/deals", label: "Deal", icon: Handshake },
   { href: "/membership", label: "Membership", icon: Crown },
