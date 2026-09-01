@@ -9,6 +9,7 @@ import {
   OpportunityType,
   createOpportunitySchema,
 } from "@/features/opportunity/opportunity.schema";
+import { TagInput } from "@/components/tag-input";
 
 export default function NewOpportunityPage() {
   const router = useRouter();
@@ -18,6 +19,9 @@ export default function NewOpportunityPage() {
   const [description, setDescription] = useState("");
   const [categoryId, setCategoryId] = useState("general");
   const [location, setLocation] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
+  const [budgetMin, setBudgetMin] = useState<string>("");
+  const [budgetMax, setBudgetMax] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -26,12 +30,18 @@ export default function NewOpportunityPage() {
     setError(null);
     setFieldErrors({});
 
+    const minNum = budgetMin ? Number(budgetMin) : undefined;
+    const maxNum = budgetMax ? Number(budgetMax) : undefined;
+
     const payload: CreateOpportunityInput = {
       type,
       title,
       description,
       categoryId,
       location: location || undefined,
+      tags: tags.length > 0 ? tags : undefined,
+      budgetMin: minNum && !isNaN(minNum) ? minNum : undefined,
+      budgetMax: maxNum && !isNaN(maxNum) ? maxNum : undefined,
     };
 
     const parsed = createOpportunitySchema.safeParse(payload);
