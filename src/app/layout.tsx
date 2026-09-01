@@ -15,8 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sinaptex",
-  description: "Sinaptex frontend application",
+  title: "Sinaptex — Temukan mitra bisnis yang tepat",
+  description:
+    "Sinaptex mencocokkan kebutuhan dan penawaran bisnis Anda dengan mitra yang tepat, lengkap dengan verifikasi, chat, dan pengelolaan deal.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
