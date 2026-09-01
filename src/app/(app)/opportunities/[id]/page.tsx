@@ -1,8 +1,17 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
+import {
+  Rocket,
+  Sparkles,
+  ArrowLeft,
+  CheckCircle2,
+  AlertCircle,
+  TrendingUp,
+} from "lucide-react";
 import { useOpportunity } from "@/features/opportunity/opportunity.hooks";
+import { useBoostPlans, useActivateBoost } from "@/features/boost/boost.hooks";
 
 const statusColor: Record<string, string> = {
   ACTIVE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
@@ -17,7 +26,32 @@ export default function OpportunityDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const { data: opp, isLoading, error } = useOpportunity(id);
+  const { data: opp, isLoading, error, refetch } = useOpportunity(id);
+  const { data: boostPlans } = useBoostPlans();
+  const activateBoost = useActivateBoost();
+
+  const [showBoostModal, setShowBoostModal] = useState(false);
+  const [selectedPlanId, setSelectedPlanId] = useState<string>("");
+  const [boostSuccess, setBoostSuccess] = useState<string | null>(null);
+  const [boostError, setBoostError] = useState<string | null>(null);
+
+  async function handleActivateBoost(e: React.FormEvent) {
+    e.preventDefault();
+    if (!selectedPlanId) return;
+
+    setBoostError(null);
+    try {
+      await activateBoost.mutateAsync({
+        opportunityId: id,
+        planId: selectedPlanId,
+      });
+      setBoostSuccess("Boost berhasil diaktifkan! Postingan Anda kini diprioritaskan di matching engine.");
+      setShowBoostModal(false);
+      refetch();
+    } catch (err) {
+      setBoostError(err instanceof Error ? err.message : "Gagal mengaktifkan boost");
+    }
+  }
 
   if (isLoading) {
     return (
@@ -32,9 +66,10 @@ export default function OpportunityDetailPage({
       <div className="mx-auto max-w-2xl space-y-4">
         <Link
           href="/opportunities"
-          className="text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+          className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
         >
-          ← Kembali
+          <ArrowLeft className="h-4 w-4" />
+          Kembali
         </Link>
         <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-400">
           {error instanceof Error ? error.message : "Opportunity tidak ditemukan"}
@@ -47,29 +82,62 @@ export default function OpportunityDetailPage({
     <div className="mx-auto max-w-2xl space-y-6">
       <Link
         href="/opportunities"
-        className="text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
+        className="inline-flex items-center gap-1 text-sm text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
       >
-        ← Kembali ke daftar
+        <ArrowLeft className="h-4 w-4" />
+        Kembali ke daftar
       </Link>
 
+      {boostSuccess && (
+        <div className="flex items-center gap-2 rounded-xl bg-emerald-50 p-4 text-sm text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300">
+          <CheckCircle2 className="h-5 w-5 shrink-0" />
+          <span>{boostSuccess}</span>
+        </div>
+      )}
+
+      {boostError && (
+        <div className="flex items-center gap-2 rounded-xl bg-red-50 p-4 text-sm text-red-800 dark:bg-red-950/50 dark:text-red-300">
+          <AlertCircle className="h-5 w-5 shrink-0" />
+          <span>{boostError}</span>
+        </div>
+      )}
+
       <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-              opp.type === "NEED"
-                ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
-                : "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400"
-            }`}
-          >
-            {opp.type}
-          </span>
-          <span
-            className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-              statusColor[opp.status] ?? statusColor.CLOSED
-            }`}
-          >
-            {opp.status}
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span
+              className={`rounded px-1.5 py-0.5 text-xs font-medium ${
+                opp.type === "NEED"
+                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
+                  : "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400"
+              }`}
+            >
+              {opp.type}
+            </span>
+            <span
+              className={`rounded px-1.5 py-0.5 text-xs font-medium ${
+                statusColor[opp.status] ?? statusColor.CLOSED
+              }`}
+            >
+              {opp.status}
+            </span>
+          </div>
+
+          {opp.status === "ACTIVE" && (
+            <button
+              type="button"
+              onClick={() => {
+                if (boostPlans && boostPlans.length > 0) {
+                  setSelectedPlanId(boostPlans[0].id);
+                }
+                setShowBoostModal(true);
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100 dark:border-indigo-900/50 dark:bg-indigo-950/40 dark:text-indigo-300"
+            >
+              <Rocket className="h-3.5 w-3.5" />
+              Boost Opportunity
+            </button>
+          )}
         </div>
 
         <h1 className="mt-3 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
@@ -131,12 +199,113 @@ export default function OpportunityDetailPage({
         <div className="mt-6 flex flex-wrap gap-2 border-t border-zinc-100 pt-6 dark:border-zinc-800">
           <Link
             href={`/matching/${opp.id}`}
-            className="rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
-            Jalankan matching
+            <Sparkles className="h-4 w-4 text-amber-400" />
+            Jalankan Matching Engine
+          </Link>
+          <Link
+            href={`/chat?opportunityId=${opp.id}`}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            Chat Terkait Opportunity
           </Link>
         </div>
       </div>
+
+      {/* Boost Modal */}
+      {showBoostModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white p-6 shadow-xl dark:border-zinc-800 dark:bg-zinc-900">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                <Rocket className="h-5 w-5" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-zinc-900 dark:text-zinc-50">
+                  Boost Opportunity Ini
+                </h3>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400">
+                  Tingkatkan bobot ranking dan visibilitas pencocokan untuk &ldquo;{opp.title}&rdquo;.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={handleActivateBoost} className="mt-5 space-y-4">
+              <div className="space-y-3">
+                {(boostPlans ?? [
+                  { id: "boost_basic", name: "Boost Basic (3 Hari)", tier: "BASIC", price: 49000, durationDays: 3 },
+                  { id: "boost_premium", name: "Boost Premium (7 Hari)", tier: "PREMIUM", price: 99000, durationDays: 7 },
+                  { id: "boost_vip", name: "Boost VIP (14 Hari)", tier: "VIP", price: 179000, durationDays: 14 },
+                ]).map((plan) => {
+                  const isSelected = selectedPlanId === plan.id;
+                  return (
+                    <label
+                      key={plan.id}
+                      onClick={() => setSelectedPlanId(plan.id)}
+                      className={`flex cursor-pointer items-center justify-between rounded-xl border p-4 transition ${
+                        isSelected
+                          ? "border-indigo-600 bg-indigo-50/60 dark:border-indigo-500 dark:bg-indigo-950/30"
+                          : "border-zinc-200 hover:border-zinc-300 dark:border-zinc-800 dark:hover:border-zinc-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="radio"
+                          name="boostPlan"
+                          checked={isSelected}
+                          onChange={() => setSelectedPlanId(plan.id)}
+                          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+                              {plan.name}
+                            </span>
+                            <span className="rounded bg-zinc-100 px-1.5 py-0.2 text-[10px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                              {plan.tier}
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
+                            Durasi {plan.durationDays} hari aktif · Prioritas skor matching
+                          </p>
+                        </div>
+                      </div>
+                      <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                        Rp {plan.price.toLocaleString("id-ID")}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center gap-2 rounded-xl bg-zinc-50 p-3 text-xs text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-300">
+                <TrendingUp className="h-4 w-4 shrink-0 text-emerald-500" />
+                <span>
+                  Opportunity yang di-boost mendapat kenaikan bobot hingga 30% pada algoritma ranking pencocokan.
+                </span>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowBoostModal(false)}
+                  className="rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={!selectedPlanId || activateBoost.isPending}
+                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {activateBoost.isPending ? "Mengaktifkan…" : "Konfirmasi & Aktifkan"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

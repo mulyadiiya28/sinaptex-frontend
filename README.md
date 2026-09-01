@@ -1,129 +1,242 @@
 # Sinaptex Frontend
 
-Frontend untuk platform *business matching* **Sinaptex**, dipasangkan dengan
-repo engine [mulyadiiya28/Sinaptex](https://github.com/mulyadiiya28/Sinaptex.git)
-(Node.js/Express + Prisma + Supabase + Socket.IO).
+Frontend modern dan responsif untuk platform *business matching* **Sinaptex**, dipasangkan dengan engine backend [mulyadiiya28/Sinaptex](https://github.com/mulyadiiya28/Sinaptex.git) (Node.js/Express + Prisma + Supabase + Socket.IO).
 
-## Stack
+Dilengkapi dengan **PWA (Progressive Web App) bertenaga Serwist**, **Web Push Notification & Local OS Notification**, dan **Socket.IO Real-time Sync**.
 
-- **Next.js** (App Router, TypeScript)
-- **Tailwind CSS**
-- **Zod** — validasi form & response API
-- **TanStack React Query** — data fetching/caching ke API engine
-- **Zustand** — state UI client-side
-- **Lucide React** — ikon
-- **Supabase JS** — auth client (engine hanya verifikasi access token, lihat README engine bagian 5)
-- **socket.io-client** — chat real-time (README engine bagian 4, "Socket.IO")
+---
 
-## Struktur folder
+## Daftar Isi
 
-Folder `features/` sengaja dibuat 1:1 dengan `src/modules/` di repo engine,
-supaya gampang dilacak endpoint mana dipakai di komponen mana.
+1. [Fitur Utama](#fitur-utama)
+2. [Tech Stack](#tech-stack)
+3. [Arsitektur PWA & Push Notification](#arsitektur-pwa--push-notification)
+4. [Struktur Folder & Domain](#struktur-folder--domain)
+5. [Setup & Instalasi](#setup--instalasi)
+6. [Environment Variables](#environment-variables)
+7. [Alur & State Machine Domain](#alur--state-machine-domain)
+8. [Konvensi Pengembangan](#konvensi-pengembangan)
+
+---
+
+## Fitur Utama
+
+- **Business Matching Engine**: Pencocokan otomatis Need & Offer berdasarkan kapabilitas bisnis, reputasi, verifikasi, lokasi, dan ranking score.
+- **PWA (Progressive Web App)**: Dukungan instalasi aplikasi (desktop/mobile), caching offline dengan Serwist, update service worker otomatis, dan status konektivitas.
+- **Web Push & Socket Notifications**: Notifikasi instan di tingkat OS / browser saat ada matching baru, pesan chat, deal baru, dan undangan kemitraan via VAPID Web Push dan Socket.IO bridge.
+- **Peluang Bisnis (Opportunity)**: Posting dan penelusuran Need & Offer dengan kuota berbasis status membership (Gratis vs Pro).
+- **Boost Opportunity**: Peningkatan bobot ranking pencocokan (Basic 3 Hari, Premium 7 Hari, VIP 14 Hari) untuk visibilitas maksimal.
+- **Undangan Matching & Deal Pipeline**: Siklus lengkap dari `PENDING` → `ACCEPTED` / `REJECTED`, otomatis bertransformasi ke Deal (`NEGOTIATION` → `DEAL` → `IN_PROGRESS` → `COMPLETED`).
+- **Chat Real-Time**: Komunikasi interaktif antar mitra bisnis menggunakan Socket.IO client dengan riwayat percakapan.
+- **Membership & Monetisasi**: Pilihan paket Pro Bulanan dan Tahunan dengan checkout URL gateway.
+- **Ulasan & Reputasi Mitra**: Penilaian bintang (1–5) dan ulasan pasca-deal yang memengaruhi skor reputasi profil bisnis.
+- **Multi-Role Auth & Sinkronisasi**: Integrasi otentikasi Supabase dengan sinkronisasi profil otomatis ke database engine backend.
+
+---
+
+## Tech Stack
+
+| Kategori | Teknologi | Deskripsi |
+|---|---|---|
+| **Framework** | Next.js 15+ (App Router) | Server & Client components modern |
+| **Language** | TypeScript | Type safety end-to-end |
+| **Styling** | Tailwind CSS | Utility-first styling & Dark Mode support |
+| **PWA & SW** | `@serwist/next` & `@serwist/sw` | Service Worker management & caching |
+| **Push Notification** | `web-push` & Web Notification API | Standar VAPID Web Push dan browser notification |
+| **Real-time** | `socket.io-client` | Real-time chat dan push trigger listener |
+| **Data Fetching** | `@tanstack/react-query` | Server state caching, deduplication, & invalidation |
+| **Client State** | Zustand | State UI lokal (Sidebar, Session, Modals) |
+| **Validasi** | Zod | Skema validasi request, response, dan form |
+| **Icons** | Lucide React | Ikon modern dan konsisten |
+| **Auth** | `@supabase/supabase-js` | Email & password auth client |
+
+---
+
+## Arsitektur PWA & Push Notification
+
+### 1. Service Worker (`@serwist/next`)
+Service Worker dikonfigurasi di `src/app/sw.ts` dan di-bundle via `@serwist/next` di `next.config.ts`:
+- **Precaching**: File aset statis dan rute aplikasi di-cache otomatis saat instalasi.
+- **Runtime Caching Strategy**:
+  - `StaleWhileRevalidate` untuk CSS, JS, font, dan image asset.
+  - `NetworkFirst` untuk rute data dan navigasi dokumen.
+- **Push Event Handler**: Menerima payload push dari backend dan menampilkan `self.registration.showNotification()`.
+- **Notification Click Handler**: Mengarahkan window browser ke target URL saat notifikasi diklik.
+
+### 2. PWA Context Provider (`PwaProvider`)
+Komponen `src/components/pwa-provider.tsx` menyediakan state global:
+- `isInstallable`: Menangkap event `beforeinstallprompt` untuk menampilkan tombol instalasi kustom di sidebar dan banner.
+- `installPwa()`: Memicu prompt instalasi resmi browser.
+- `isOnline`: Melacak status jaringan `online`/`offline` pengguna secara real-time.
+- `notificationPermission`: Status izin notifikasi browser (`default`, `granted`, `denied`).
+
+### 3. Push Manager & Web Push Bridge
+Dikelola di `src/lib/push-manager.ts`:
+- **`subscribeToPush()`**: Mendaftarkan Service Worker ke Push Service menggunakan VAPID Public Key (`NEXT_PUBLIC_VAPID_PUBLIC_KEY`) dan mengirim subscription object ke `/api/push/subscribe`.
+- **`sendLocalNotification()`**: Mengirimkan notifikasi lokal langsung lewat Service Worker ketika aplikasi sedang terbuka di foreground.
+- **Socket.IO Bridge (`useNotificationSocket`)**: Mendengarkan event real-time `notification:new` dari backend socket dan secara otomatis memunculkan OS-level push notification jika tab tidak fokus atau di latar belakang.
+
+---
+
+## Struktur Folder & Domain
+
+Folder `src/features/` disusun 1:1 mencerminkan arsitektur domain di backend engine:
 
 ```
 src/
-├── app/                      # Routing (App Router)
-│   ├── login/                # Halaman masuk (Supabase email/password)
-│   ├── register/             # Halaman daftar + sinkron profil ke engine
-│   └── page.tsx              # Home (auth-aware)
-├── components/
-│   └── auth-provider.tsx     # Listener onAuthStateChange + sync session
-├── features/                  # 1 folder = 1 domain, cermin src/modules/ di engine
-│   ├── auth/                   # signIn/signUp/signOut + register sync + GET /api/auth/me
-│   ├── profile/                 # profil + party
-│   ├── verification/            # upload dokumen, status APPROVED/REJECTED
-│   ├── opportunity/              # Need/Offer, quota, status ACTIVE/CLOSED/…
-│   ├── boost/                    # plans + activate
-│   ├── matching/                  # GET /matching/:opportunityId/run
-│   ├── invitation/                 # PENDING -> ACCEPTED/REJECTED/EXPIRED
-│   ├── deal/                        # NEGOTIATION -> DEAL -> IN_PROGRESS -> COMPLETED
-│   ├── chat/                         # REST (list) + Socket.IO (real-time)
-│   ├── membership/                    # plans, status, checkout
-│   ├── review/                         # rating pasca-deal
-│   └── notification/                    # FR-12 multi-channel (in-app list)
-│       Tiap folder umumnya berisi:
-│       *.schema.ts  → Zod schema + type (z.infer)
-│       *.api.ts      → fungsi fetch lewat apiClient
-│       *.hooks.ts     → React Query hooks (useQuery/useMutation)
+├── app/                              # Next.js App Router
+│   ├── (app)/                        # Authenticated App Layout & Pages
+│   │   ├── chat/                     # Halaman chat real-time (Socket.IO)
+│   │   ├── dashboard/                # Dashboard ringkasan & manajemen undangan
+│   │   ├── deals/                    # Manajemen deal & ulasan mitra
+│   │   ├── marketplace/              # Marketplace Need & Offer publik
+│   │   ├── matching/                 # Hasil business matching per opportunity
+│   │   ├── membership/               # Langganan membership & paket boost
+│   │   ├── notifications/            # Notifikasi & pengaturan push notification
+│   │   ├── opportunities/            # Kelola postingan opportunity & aktivasi boost
+│   │   └── profile/                  # Profil bisnis, KYC verifikasi, & preferensi
+│   ├── api/                          # Server-side API Routes
+│   │   └── push/
+│   │       ├── subscribe/route.ts    # Simpan push subscription
+│   │       └── test/route.ts         # Endpoint pengujian kirim web push
+│   ├── login/                        # Halaman masuk Supabase
+│   ├── register/                     # Halaman registrasi + sinkronisasi profil
+│   ├── manifest.json                 # PWA Web App Manifest
+│   └── sw.ts                         # Service Worker entry point (Serwist)
+├── components/                       # Komponen UI Reusable
+│   ├── app-header.tsx                # Header dengan toggle status koneksi & notifikasi
+│   ├── app-sidebar.tsx               # Navigasi utama + tombol install PWA
+│   ├── auth-provider.tsx             # Sinkronisasi auth Supabase ↔ Zustand
+│   ├── pwa-provider.tsx              # Provider PWA & permission manager
+│   └── push-notification-settings.tsx# Widget pengaturan notifikasi pengguna
+├── features/                         # Modul Fitur (1 Folder = 1 Domain Engine)
+│   ├── auth/                         # Autentikasi, login, register, me
+│   ├── boost/                        # Paket & aktivasi boost opportunity
+│   ├── chat/                         # REST + Socket.IO real-time chat
+│   ├── deal/                         # Manajemen deal & progress kemitraan
+│   ├── invitation/                   # Undangan kolaborasi matching
+│   ├── matching/                     # Algoritma & hasil matching engine
+│   ├── membership/                   # Status membership & checkout
+│   ├── notification/                 # In-app notification & socket listener
+│   ├── opportunity/                  # CRUD Need/Offer & kuota pengguna
+│   ├── profile/                      # Profil bisnis & entitas party
+│   ├── review/                       # Ulasan & penilaian bintang deal
+│   └── verification/                 # Upload & status dokumen verifikasi
 ├── lib/
-│   ├── api-client.ts            # wrapper fetch, auto-attach Bearer token Supabase
-│   ├── supabase-client.ts        # Supabase client + getAccessToken()
-│   ├── socket-client.ts           # Socket.IO singleton untuk chat
-│   └── query-provider.tsx          # Provider React Query
+│   ├── api-client.ts                 # Fetch wrapper dengan auto Bearer Supabase Token
+│   ├── push-manager.ts               # Utilitas Web Push & Service Worker notification
+│   ├── query-provider.tsx            # TanStack React Query Client Provider
+│   ├── socket-client.ts              # Singleton instance Socket.IO
+│   ├── supabase-client.ts            # Singleton instance Supabase Client
+│   └── utils.ts                      # Helper fungsi (clsx, tailwind-merge)
 └── store/
-    ├── use-ui-store.ts             # state UI (sidebar, modal, dll)
-    └── use-session-store.ts         # cache ringan profil user login
+    ├── use-session-store.ts          # Cache profil pengguna login
+    └── use-ui-store.ts               # State UI (sidebar toggle, modal dialog)
 ```
 
-## Setup
+---
+
+## Setup & Instalasi
+
+### 1. Prasyarat
+- **Node.js**: v18.17.0 atau lebih baru
+- **NPM** atau **PNPM** / **Yarn**
+- **Engine Backend Sinaptex**: Berjalan pada `http://localhost:4000`
+
+### 2. Langkah Instalasi
 
 ```bash
+# Clone repository
+git clone https://github.com/mulyadiiya28/Sinaptex.git
+cd Sinaptex
+
+# Install dependensi
 npm install
+
+# Konfigurasi environment variables
 cp .env.example .env.local
-# isi NEXT_PUBLIC_API_URL (default engine: http://localhost:4000)
-# isi NEXT_PUBLIC_SUPABASE_URL & NEXT_PUBLIC_SUPABASE_ANON_KEY (sama dg project Supabase engine)
-npm run dev
 ```
 
-Jalankan juga repo engine secara terpisah (lihat README engine bagian "Setup") —
-default `http://localhost:4000`, prefix `/api` dan `/api/v1`, Swagger di `/api/docs`.
+### 3. Generate VAPID Keys (Opsional untuk Push Notification)
+Jika Anda ingin menguji Web Push kustom di lokal, buat pasangan kunci VAPID:
+```bash
+npx web-push generate-vapid-keys
+```
+Salin *Public Key* ke `NEXT_PUBLIC_VAPID_PUBLIC_KEY` dan *Private Key* ke `VAPID_PRIVATE_KEY` di file `.env.local`.
 
-## Alur auth (sudah terintegrasi)
+### 4. Menjalankan Server Pengembangan
 
-1. **Register** (`/register`)
-   - User isi fullName, email, password (+ phone opsional).
-   - Client memanggil `supabase.auth.signUp()`.
-   - Jika session langsung tersedia (email confirmation dimatikan di Supabase),
-     otomatis panggil `POST /api/auth/register` untuk sinkron `users`/`profiles` di engine.
-   - Jika butuh konfirmasi email, tampilkan pesan "cek email".
+```bash
+npm run dev
+```
+Aplikasi dapat diakses di browser pada `http://localhost:3000`.
 
-2. **Login** (`/login`)
-   - `supabase.auth.signInWithPassword()`.
-   - Setelah session aktif, `AuthProvider` memanggil `GET /api/auth/me` dan
-     menyimpan ke Zustand + React Query cache.
+### 5. Build Produksi
 
-3. **Session persistence**
-   - `AuthProvider` (`src/components/auth-provider.tsx`) listen
-     `onAuthStateChange` dan menjaga sinkronisasi session ↔ store ↔ cache.
+```bash
+npm run build
+npm start
+```
 
-4. **API calls**
-   - `apiClient` otomatis melampirkan `Authorization: Bearer <supabase_access_token>`.
+---
 
-5. **Logout**
-   - `useSignOut()` → `supabase.auth.signOut()` + clear store & query cache.
+## Environment Variables
 
-### Hooks auth yang tersedia
+| Variable | Wajib | Keterangan | Contoh Nilai |
+|---|---|---|---|
+| `NEXT_PUBLIC_API_URL` | Ya | URL backend engine Sinaptex | `http://localhost:4000` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Ya | URL project Supabase Auth | `https://xxxx.supabase.co` |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Ya | Anon / Public Key Supabase | `eyJhbGciOi...` |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Opsional | Public VAPID key untuk Web Push PWA | `BEl62iUYg...` |
+| `VAPID_PRIVATE_KEY` | Opsional | Private VAPID key untuk backend push test | `_AbCdEf...` |
+| `VAPID_SUBJECT` | Opsional | Email subject VAPID | `mailto:admin@sinaptex.com` |
 
-| Hook | Kegunaan |
-|------|----------|
-| `useSignIn()` | Login email/password |
-| `useSignUp()` | Register + sinkron profil engine |
-| `useSignOut()` | Logout |
-| `useMe()` | Ambil profil dari engine |
-| `useRegisterProfile()` | Sinkron profil manual (jika perlu) |
+---
 
-## Alur produk yang perlu diperhatikan di UI
+## Alur & State Machine Domain
 
-Mengikuti README engine:
+### 1. Opportunity & Kuota
+- **Batas Kuota**:
+  - Akun Standar (Gratis): Maksimal 1 Need aktif + 1 Offer aktif.
+  - Pro Member: Maksimal 20 Need aktif + 20 Offer aktif.
+- Error `OPPORTUNITY_QUOTA_EXCEEDED` dari backend ditangani dengan modal/notifikasi upgrade membership.
 
-- **Opportunity quota**: non-member maks 1 Need ACTIVE + 1 Offer ACTIVE; member aktif
-  maks 20 + 20. Tangkap error `OPPORTUNITY_QUOTA_EXCEEDED` (sudah di-handle di
-  `features/opportunity/opportunity.hooks.ts`) untuk arahkan user upgrade membership.
-- **Chat dari Opportunity**: `originType: NEED` saat ini *tanpa* gate membership;
-  `OFFER`/`PROFILE` masih perlu membership aktif di kode produksi (FR-16 belum final).
-  Jangan asumsikan semua originType punya akses sama di UI.
-- **Invitation ≠ satu-satunya jalur komunikasi** — chat dari Opportunity berjalan
-  paralel, tidak wajib menunggu Invitation di-accept.
-- **Deal state machine**: `NEGOTIATION → DEAL → IN_PROGRESS → COMPLETED`, dengan
-  `CANCELLED`/`EXPIRED` sebagai jalur keluar di tiap tahap awal.
+### 2. Boost Opportunity
+- User dapat mengaktifkan paket Boost pada Opportunity yang berstatus `ACTIVE`:
+  - **Basic (3 Hari)**: +15% ranking score.
+  - **Premium (7 Hari)**: +30% ranking score + highlight badge.
+  - **VIP (14 Hari)**: Prioritas tertinggi pada hasil pencocokan.
 
-## Konvensi
+### 3. Undangan Matching & Deal Lifecycle
+```
+[Matching Result] ──(Kirim Undangan)──► [Invitation: PENDING]
+                                              │
+                    ┌─────────────────────────┴─────────────────────────┐
+                    ▼                                                   ▼
+            [Invitation: REJECTED]                             [Invitation: ACCEPTED]
+                                                                        │
+                                                                        ▼
+                                                                [Deal: NEGOTIATION]
+                                                                        │
+                                                                [Deal: DEAL]
+                                                                        │
+                                                                [Deal: IN_PROGRESS]
+                                                                        │
+                                                                [Deal: COMPLETED]
+                                                                        │
+                                                                [Review & Rating]
+```
 
-- Semua request ke engine lewat `apiClient` (`src/lib/api-client.ts`) — jangan
-  `fetch` langsung di komponen.
-- Validasi input pakai Zod di `features/<domain>/*.schema.ts`, turunkan type dengan
-  `z.infer<...>`.
-- State server → React Query (`*.hooks.ts` per domain). State UI lokal → Zustand
-  (`src/store/`).
-- Chat pakai `features/chat/chat-socket.ts` (`useChatSocket`) untuk real-time,
-  REST `chat.api.ts` untuk riwayat percakapan/pesan dan upload media.
+### 4. Chat & Real-Time Sync
+- Komunikasi dapat diinisiasi langsung dari halaman Opportunity atau melalui Deal.
+- Event Socket.IO `chat:message` dan `notification:new` tersinkronisasi dua arah dengan UI dan Service Worker push notifications.
+
+---
+
+## Konvensi Pengembangan
+
+1. **Komunikasi API Terpusat**: Seluruh pemanggilan endpoint harus melalui `apiClient` (`src/lib/api-client.ts`) yang otomatis menginjeksikan token Supabase.
+2. **Validasi Skema**: Setiap payload request dan response wajib divalidasi menggunakan skema Zod di `features/<domain>/*.schema.ts`.
+3. **React Query Hooks**: Setiap endpoint dibungkus dalam hook di `features/<domain>/*.hooks.ts` dengan manajemen cache dan key query terstandarisasi.
+4. **PWA Compliance**: Manifest dan ikon harus tetap sinkron dengan metadata rute Next.js.
+
