@@ -5,6 +5,7 @@ import { getAccessToken } from "@/lib/supabase-client";
  */
 const BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "https://cahayaastera.com").replace(/\/+$/, "");
 
+
 export type PaginationMeta = {
   page: number;
   limit: number;
@@ -50,6 +51,7 @@ async function requestRaw<T>(path: string, options: FetchOptions = {}): Promise<
   const { params, auth = true, headers, signal, ...init } = options;
 
   const authHeaders: Record<string, string> = {};
+
   if (auth) {
     try {
       const token = await getAccessToken();
@@ -133,3 +135,4 @@ export const apiClient = {
   delete: <T,>(path: string, options?: FetchOptions) =>
     request<T>(path, { ...options, method: "DELETE" }),
 };
+

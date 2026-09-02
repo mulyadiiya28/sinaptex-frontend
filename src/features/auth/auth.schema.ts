@@ -1,20 +1,35 @@
-import { z } from "zod";
+// src/features/auth/auth.schema.ts
 
-// Auth aktual (email/password) ditangani Supabase di client.
-// Schema ini untuk sinkronisasi profil ke backend engine setelah Supabase auth sukses.
+export interface RegisterProfileInput {
+  fullName: string;
+  phone?: string;
+  bio?: string;
+  location?: string;
+  party?: {
+    name: string;
+    isCompany?: boolean;
+    categoryId?: string;
+    description?: string;
+    location?: string;
+    npwp?: string;
+    nib?: string;
+  };
+  businessRoles?: string[];
+  capabilityNames?: string[];
+}
 
-export const registerProfileSchema = z.object({
-  fullName: z.string().min(2, "Nama minimal 2 karakter"),
-  email: z.string().email("Email tidak valid"),
-  phone: z.string().min(8, "Nomor telepon tidak valid").optional(),
-});
-export type RegisterProfileInput = z.infer<typeof registerProfileSchema>;
-
-export const meResponseSchema = z.object({
-  id: z.string(),
-  email: z.string().email(),
-  fullName: z.string(),
-  phone: z.string().nullable().optional(),
-  isVerified: z.boolean().default(false),
-});
-export type Me = z.infer<typeof meResponseSchema>;
+export interface Me {
+  id: string;
+  email: string;
+  fullName: string;
+  phone?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  isVerified?: boolean;
+  avatarUrl?: string | null;
+  accountStatus?: string;
+  businessRoles?: Array<{ role: string }> | null;
+  parties?: Array<any> | null;
+  createdAt?: string;
+  updatedAt?: string;
+}

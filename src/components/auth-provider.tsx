@@ -9,39 +9,28 @@ import { authKeys } from "@/features/auth/auth.hooks";
 import { authApi } from "@/features/auth/auth.api";
 import { useNotificationSocket } from "@/features/notification/use-notification-socket";
 import { disconnectSocket } from "@/lib/socket-client";
+import { useRouter, usePathname } from "next/navigation";
 
-/**
- * Menyimak perubahan session Supabase dan sinkronkan ke:
- * - Zustand (useSessionStore)
- * - React Query cache (authKeys.me)
- * - Socket.IO (notifikasi + chat real-time)
- *
- * Dipasang sekali di root layout.
- */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const setMe = useSessionStore((s) => s.setMe);
   const [ready, setReady] = useState(false);
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // Real-time notifications (connect saat me tersedia)
   useNotificationSocket();
 
   useEffect(() => {
     let mounted = true;
-
-    // Safety timeout: pastikan ready=true dalam maksimal 1.5 detik jika Supabase lambat/offline
     const safetyTimer = setTimeout(() => {
-      if (mounted) {
-        setReady(true);
-      }
+      if (mounted) setReady(true);
     }, 1500);
 
     supabase.auth
       .getSession()
       .then(({ data }) => {
         if (!mounted) return;
-        const session = data?.session ?? null;
-        handleSession(session);
+        handleSession(data?.session ?? null);
       })
       .catch((err) => {
         console.warn("[AuthProvider] Supabase session check error:", err);
@@ -73,8 +62,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!mounted) return;
         setMe(me);
         queryClient.setQueryData(authKeys.me, me);
-      } catch (err) {
+      } catch (err: any) {
         if (!mounted) return;
+
+        const msg = err?.message || "";
+
+        // ✅ User ada di Supabase tapi belum register di backend Sinaptex
+        if (
+          msg.includes("Account not registered locally") ||
+          msg.includes("Profile not found") ||
+          msg.includes("Complete registration")
+        ) {
+          console.warn("[AuthProvider] User not registered in backend, redirecting to register");
+          setMe(null);
+          queryClient.removeQueries({ queryKey: authKeys.me });
+          disconnectSocket();
+          
+          // Hindari redirect loop
+          if (pathname !== "/register" && pathname !== "/login") {
+            router.push("/register?reason=complete_profile");
+          }
+          return;
+        }
+
         console.warn("[AuthProvider] Failed fetching me profile:", err);
         setMe(null);
         queryClient.removeQueries({ queryKey: authKeys.me });
@@ -87,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       clearTimeout(safetyTimer);
       subscription.unsubscribe();
     };
-  }, [queryClient, setMe]);
+  }, [queryClient, setMe, router, pathname]);
 
   if (!ready) {
     return (

@@ -82,7 +82,6 @@ export function useSignUp() {
       if (data.session) {
         const profile = await authApi.register({
           fullName,
-          email,
           phone,
         });
         return { supabase: data, profile };

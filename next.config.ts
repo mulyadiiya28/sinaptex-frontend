@@ -2,10 +2,10 @@ import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
 
 const withSerwist = withSerwistInit({
-  swSrc: "src/app/sw.ts",
+  swSrc: "src/sw.ts",
   swDest: "public/sw.js",
   disable: process.env.NODE_ENV !== "production",
-  reloadOnOnline: false, // ✅ Diubah: jangan auto-reload saat online — ganggu UX form
+  reloadOnOnline: false, 
 });
 
 const nextConfig: NextConfig = {

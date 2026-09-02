@@ -146,6 +146,12 @@ export async function registerSerwistServiceWorker(): Promise<ServiceWorkerRegis
     return null;
   }
 
+  // ✅ Guard: jangan register manual di development — Serwist sudah handle di production
+  if (process.env.NODE_ENV === "development") {
+    console.log("[PushManager] SW registration skipped: development mode");
+    return null;
+  }
+
   try {
     const registration = await navigator.serviceWorker.register("/sw.js", {
       scope: "/",
