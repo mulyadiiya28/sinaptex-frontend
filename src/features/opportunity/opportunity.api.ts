@@ -24,12 +24,11 @@ function toParams(params?: MarketplaceListParams): Record<string, string | numbe
 }
 
 export const opportunityApi = {
-  /** List publik marketplace (ACTIVE + PUBLIC di engine). */
+  /** List publik marketplace (ACTIVE + PUBLIC di engine). Tidak wajib auth. */
   list: async (params?: MarketplaceListParams): Promise<{ data: Opportunity[]; meta?: PaginationMeta }> => {
     return apiClient.getWithMeta<Opportunity[]>("/api/v1/opportunities", {
       params: toParams(params),
-      // List publik tidak wajib auth, tapi kirim token jika ada
-      auth: true,
+      auth: false, // ✅ Diubah: list publik tidak memerlukan auth
     });
   },
 

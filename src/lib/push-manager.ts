@@ -28,6 +28,68 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
   }
 }
 
+/**
+ * Subscribe browser ke Push Service menggunakan VAPID public key,
+ * lalu kirim subscription object ke backend server.
+ */
+export async function subscribeToPush(): Promise<PushSubscription | null> {
+  if (!isPushSupported()) return null;
+
+  const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+  if (!vapidPublicKey) {
+    console.warn("[Push] NEXT_PUBLIC_VAPID_PUBLIC_KEY belum di-set");
+    return null;
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const existing = await reg.pushManager.getSubscription();
+    if (existing) return existing;
+
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as unknown as ArrayBuffer,
+    });
+
+    // Kirim ke backend
+    await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subscription }),
+    });
+
+    return subscription;
+  } catch (err) {
+    console.error("[Push] Subscription failed:", err);
+    return null;
+  }
+}
+
+/**
+ * Unsubscribe dari Push Service.
+ */
+export async function unsubscribeFromPush(): Promise<boolean> {
+  if (!isPushSupported()) return false;
+
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      await sub.unsubscribe();
+      // Beritahu backend untuk menghapus subscription
+      await fetch("/api/push/subscribe", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: sub.endpoint }),
+      });
+    }
+    return true;
+  } catch (err) {
+    console.error("[Push] Unsubscribe failed:", err);
+    return false;
+  }
+}
+
 export async function sendLocalNotification(
   title: string,
   options: {
@@ -110,4 +172,16 @@ export async function registerSerwistServiceWorker(): Promise<ServiceWorkerRegis
     console.warn("[Serwist] Service worker registration failed:", error);
     return null;
   }
+}
+
+// Helper: Convert VAPID base64 key to Uint8Array
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/\-/g, "+").replace(/\_/g, "/");
+  const rawData = atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
 }

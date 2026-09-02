@@ -11,6 +11,20 @@ import {
 } from "@/features/opportunity/opportunity.schema";
 import { TagInput } from "@/components/tag-input";
 
+// ✅ Fix: Kategori dari backend (placeholder — ganti dengan useCategories hook)
+const CATEGORY_OPTIONS = [
+  { value: "general", label: "Umum" },
+  { value: "manufacturing", label: "Manufaktur" },
+  { value: "logistics", label: "Logistik & Supply Chain" },
+  { value: "technology", label: "Teknologi & IT" },
+  { value: "agriculture", label: "Pertanian & Pangan" },
+  { value: "construction", label: "Konstruksi & Properti" },
+  { value: "retail", label: "Retail & E-commerce" },
+  { value: "finance", label: "Keuangan & Fintech" },
+  { value: "healthcare", label: "Kesehatan & Farmasi" },
+  { value: "energy", label: "Energi & Utilitas" },
+];
+
 export default function NewOpportunityPage() {
   const router = useRouter();
   const create = useCreateOpportunity();
@@ -25,10 +39,36 @@ export default function NewOpportunityPage() {
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
+  // ✅ Fix: Validasi budget helper
+  function validateBudget(min: string, max: string): string | null {
+    const minNum = min ? Number(min) : undefined;
+    const maxNum = max ? Number(max) : undefined;
+
+    if (minNum !== undefined) {
+      if (isNaN(minNum) || minNum < 0) return "Budget minimum tidak valid (harus ≥ 0)";
+      if (!Number.isInteger(minNum)) return "Budget minimum harus berupa angka bulat";
+    }
+    if (maxNum !== undefined) {
+      if (isNaN(maxNum) || maxNum < 0) return "Budget maksimum tidak valid (harus ≥ 0)";
+      if (!Number.isInteger(maxNum)) return "Budget maksimum harus berupa angka bulat";
+    }
+    if (minNum !== undefined && maxNum !== undefined && minNum > maxNum) {
+      return "Budget minimum tidak boleh lebih besar dari maksimum";
+    }
+    return null;
+  }
+
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setFieldErrors({});
+
+    // ✅ Fix: Validasi budget sebelum parse
+    const budgetError = validateBudget(budgetMin, budgetMax);
+    if (budgetError) {
+      setFieldErrors({ budget: budgetError });
+      return;
+    }
 
     const minNum = budgetMin ? Number(budgetMin) : undefined;
     const maxNum = budgetMax ? Number(budgetMax) : undefined;
@@ -40,8 +80,8 @@ export default function NewOpportunityPage() {
       categoryId,
       location: location || undefined,
       tags: tags.length > 0 ? tags : undefined,
-      budgetMin: minNum && !isNaN(minNum) ? minNum : undefined,
-      budgetMax: maxNum && !isNaN(maxNum) ? maxNum : undefined,
+      budgetMin: minNum,
+      budgetMax: maxNum,
     };
 
     const parsed = createOpportunitySchema.safeParse(payload);
@@ -141,19 +181,24 @@ export default function NewOpportunityPage() {
           )}
         </div>
 
-        {/* Category (sementara free-text id) */}
+        {/* Category — ✅ Fix: Dropdown select, bukan free-text */}
         <div>
           <label htmlFor="categoryId" className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
             Kategori
           </label>
-          <input
+          <select
             id="categoryId"
             required
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
             className="w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm outline-none ring-zinc-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:ring-zinc-100"
-            placeholder="general"
-          />
+          >
+            {CATEGORY_OPTIONS.map((cat) => (
+              <option key={cat.value} value={cat.value}>
+                {cat.label}
+              </option>
+            ))}
+          </select>
           {fieldErrors.categoryId && (
             <p className="mt-1 text-xs text-red-600">{fieldErrors.categoryId}</p>
           )}
@@ -171,6 +216,50 @@ export default function NewOpportunityPage() {
             className="w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm outline-none ring-zinc-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:ring-zinc-100"
             placeholder="Jakarta, Indonesia"
           />
+        </div>
+
+        {/* Tags — ✅ Fix: Gunakan TagInput component */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Tag <span className="font-normal text-zinc-400">(opsional)</span>
+          </label>
+          <TagInput
+            tags={tags}
+            onChange={setTags}
+            placeholder="Tambah tag dan tekan Enter…"
+          />
+          <p className="mt-1 text-xs text-zinc-400">
+            Tag membantu sistem matching menemukan partner yang relevan.
+          </p>
+        </div>
+
+        {/* Budget — ✅ Fix: Validasi range dan numeric */}
+        <div>
+          <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+            Rentang Budget <span className="font-normal text-zinc-400">(opsional)</span>
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              min={0}
+              value={budgetMin}
+              onChange={(e) => setBudgetMin(e.target.value)}
+              placeholder="Minimum"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm outline-none ring-zinc-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:ring-zinc-100"
+            />
+            <span className="text-sm text-zinc-400">—</span>
+            <input
+              type="number"
+              min={0}
+              value={budgetMax}
+              onChange={(e) => setBudgetMax(e.target.value)}
+              placeholder="Maksimum"
+              className="w-full rounded-lg border border-zinc-300 bg-white px-3.5 py-2.5 text-sm outline-none ring-zinc-900 focus:ring-2 dark:border-zinc-700 dark:bg-zinc-950 dark:ring-zinc-100"
+            />
+          </div>
+          {fieldErrors.budget && (
+            <p className="mt-1 text-xs text-red-600">{fieldErrors.budget}</p>
+          )}
         </div>
 
         {error && (

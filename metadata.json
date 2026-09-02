@@ -1,6 +1,4 @@
 {
   "name": "Sinaptex",
-  "description": "Ekosistem Bisnis dan Layanan Cerdas — Platform business matching untuk mencocokkan kebutuhan, penawaran, dan transaksi kemitraan.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "description": "Ekosistem Bisnis dan Layanan Cerdas — Platform business matching untuk mencocokkan kebutuhan, penawaran, dan transaksi kemitraan."
 }

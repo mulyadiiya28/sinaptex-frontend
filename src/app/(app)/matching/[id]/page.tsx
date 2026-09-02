@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -18,6 +18,23 @@ import { useCreateInvitation } from "@/features/invitation/invitation.hooks";
 import { MatchResult } from "@/features/matching/matching.schema";
 import { MatchingResultsSkeleton } from "@/components/skeleton";
 
+const INVITED_STORAGE_KEY = "sinaptex_invited_map";
+
+function loadInvitedMap(): Record<string, boolean> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = sessionStorage.getItem(INVITED_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveInvitedMap(map: Record<string, boolean>) {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(INVITED_STORAGE_KEY, JSON.stringify(map));
+}
+
 export default function MatchingPage({
   params,
 }: {
@@ -30,9 +47,15 @@ export default function MatchingPage({
 
   const [selectedMatch, setSelectedMatch] = useState<MatchResult | null>(null);
   const [inviteMessage, setInviteMessage] = useState("");
-  const [invitedMap, setInvitedMap] = useState<Record<string, boolean>>({});
+  // ✅ Fix: invitedMap persisten via sessionStorage
+  const [invitedMap, setInvitedMap] = useState<Record<string, boolean>>(loadInvitedMap);
   const [inviteSuccessMsg, setInviteSuccessMsg] = useState<string | null>(null);
   const [inviteErrorMsg, setInviteErrorMsg] = useState<string | null>(null);
+
+  // Persist ke sessionStorage setiap berubah
+  useEffect(() => {
+    saveInvitedMap(invitedMap);
+  }, [invitedMap]);
 
   const isLoading = isOppLoading || isMatchLoading;
 
@@ -50,7 +73,10 @@ export default function MatchingPage({
         message: inviteMessage.trim() || undefined,
       });
 
-      setInvitedMap((prev) => ({ ...prev, [selectedMatch.opportunityId]: true }));
+      setInvitedMap((prev) => {
+        const next = { ...prev, [selectedMatch.opportunityId]: true };
+        return next;
+      });
       setInviteSuccessMsg(
         `Undangan berhasil dikirim ke ${selectedMatch.counterparty.name}!`
       );
@@ -172,11 +198,13 @@ export default function MatchingPage({
 
       {!isLoading && matches && matches.length > 0 && (
         <div className="space-y-4">
-          {matches.map((item, idx) => {
+          {matches.map((item) => {
+            // ✅ Fix: Gunakan opportunityId sebagai key, jangan fallback ke index
+            const key = item.opportunityId || item.counterparty.partyId;
             const isInvited = invitedMap[item.opportunityId];
             return (
               <div
-                key={item.opportunityId || idx}
+                key={key}
                 className="flex flex-col gap-4 rounded-xl border border-zinc-200 bg-white p-5 transition hover:border-zinc-300 hover:shadow-sm sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700"
               >
                 <div className="space-y-3">

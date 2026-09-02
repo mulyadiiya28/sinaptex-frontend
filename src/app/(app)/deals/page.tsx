@@ -16,6 +16,7 @@ import { useDeals, useUpdateDealStatus } from "@/features/deal/deal.hooks";
 import { useCreateReview } from "@/features/review/review.hooks";
 import { Deal, DealStatus } from "@/features/deal/deal.schema";
 
+// ✅ Fix: Type-safe status badge mapping
 const statusFilterTabs: { label: string; status?: DealStatus | "CANCELLED_OR_EXPIRED" }[] = [
   { label: "Semua" },
   { label: "Negosiasi", status: "NEGOTIATION" },
@@ -25,7 +26,8 @@ const statusFilterTabs: { label: string; status?: DealStatus | "CANCELLED_OR_EXP
   { label: "Batal / Expired", status: "CANCELLED_OR_EXPIRED" },
 ];
 
-const statusBadgeColor: Record<string, string> = {
+// ✅ Fix: Strict typing untuk status badge colors
+const statusBadgeColor: Record<DealStatus, string> = {
   NEGOTIATION: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
   DEAL: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
   IN_PROGRESS: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400",
@@ -47,8 +49,18 @@ export default function DealsPage() {
   const [reviewSuccessMsg, setReviewSuccessMsg] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
+  // ✅ Fix: Local optimistic state untuk deal status (sementara menunggu server)
+  const [optimisticStatusMap, setOptimisticStatusMap] = useState<Record<string, DealStatus>>({});
+
   const activeTab = statusFilterTabs[selectedTabIdx];
-  const items = (deals ?? []).filter((deal) => {
+
+  // ✅ Fix: Apply optimistic status ke data deals
+  const displayedDeals = (deals ?? []).map((deal) => ({
+    ...deal,
+    status: optimisticStatusMap[deal.id] ?? deal.status,
+  }));
+
+  const items = displayedDeals.filter((deal) => {
     if (!activeTab.status) return true;
     if (activeTab.status === "CANCELLED_OR_EXPIRED") {
       return deal.status === "CANCELLED" || deal.status === "EXPIRED";
@@ -58,9 +70,24 @@ export default function DealsPage() {
 
   async function handleStatusChange(id: string, newStatus: DealStatus) {
     setActionError(null);
+    // ✅ Fix: Optimistic update — langsung update UI
+    setOptimisticStatusMap((prev) => ({ ...prev, [id]: newStatus }));
+
     try {
       await updateStatus.mutateAsync({ id, status: newStatus });
+      // Success: server state akan sync via invalidate
+      setOptimisticStatusMap((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
     } catch (err) {
+      // ✅ Fix: Rollback optimistic update saat error
+      setOptimisticStatusMap((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setActionError(err instanceof Error ? err.message : "Gagal mengubah status deal");
     }
   }
@@ -216,8 +243,9 @@ export default function DealsPage() {
               {/* Actions according to state machine */}
               <div className="flex flex-wrap items-center justify-between gap-2 pt-2">
                 <div className="flex items-center gap-2">
+                  {/* ✅ Fix: Link chat dengan opportunityId untuk context spesifik */}
                   <Link
-                    href={`/chat`}
+                    href={`/chat?opportunityId=${deal.invitationId}`}
                     className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
                   >
                     <MessageSquare className="h-3.5 w-3.5" />

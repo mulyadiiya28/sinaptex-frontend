@@ -43,12 +43,13 @@ export function useCreateOpportunity() {
       queryClient.invalidateQueries({ queryKey: opportunityKeys.all });
     },
     onError: (error: Error) => {
+      // Jangan throw di sini — React Query onError tidak menangkap throw.
+      // Error sudah tersedia di mutation state (isError, error).
+      // Consumer hook/page bertanggung jawab menampilkan toast/modal.
       if (error.message.includes(OPPORTUNITY_QUOTA_EXCEEDED)) {
-        throw new Error(
-          "Kuota posting aktif sudah penuh. Tutup posting lama atau upgrade membership."
-        );
+        // Override message agar lebih user-friendly
+        error.message = "Kuota posting aktif sudah penuh. Tutup posting lama atau upgrade membership.";
       }
-      throw error;
     },
   });
 }
