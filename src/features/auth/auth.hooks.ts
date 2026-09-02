@@ -112,8 +112,14 @@ export function useSignOut() {
     onSuccess: () => {
       disconnectSocket();
       setMe(null);
+      // Hapus hanya query terkait auth & user data, bukan semua cache
       queryClient.removeQueries({ queryKey: authKeys.me });
-      queryClient.clear();
+      queryClient.removeQueries({ queryKey: ["opportunities"] });
+      queryClient.removeQueries({ queryKey: ["invitations"] });
+      queryClient.removeQueries({ queryKey: ["notifications"] });
+      queryClient.removeQueries({ queryKey: ["deals"] });
+      queryClient.removeQueries({ queryKey: ["chat"] });
+      // queryClient.clear(); // ❌ Dihapus — terlalu agresif, menghapus semua cache termasuk data publik
     },
   });
 }

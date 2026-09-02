@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Bell,
   BellRing,
@@ -13,6 +13,33 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { usePWA } from "@/components/pwa-provider";
+
+const PREF_KEY = "sinaptex_notification_prefs";
+
+interface NotificationPrefs {
+  match: boolean;
+  invite: boolean;
+  chat: boolean;
+  deal: boolean;
+}
+
+function loadPrefs(): NotificationPrefs {
+  if (typeof window === "undefined") {
+    return { match: true, invite: true, chat: true, deal: true };
+  }
+  try {
+    const raw = localStorage.getItem(PREF_KEY);
+    if (raw) return JSON.parse(raw) as NotificationPrefs;
+  } catch {
+    // ignore parse error
+  }
+  return { match: true, invite: true, chat: true, deal: true };
+}
+
+function savePrefs(prefs: NotificationPrefs) {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(PREF_KEY, JSON.stringify(prefs));
+}
 
 export function PushNotificationSettings() {
   const {
@@ -27,10 +54,12 @@ export function PushNotificationSettings() {
 
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
-  const [prefMatch, setPrefMatch] = useState(true);
-  const [prefInvite, setPrefInvite] = useState(true);
-  const [prefChat, setPrefChat] = useState(true);
-  const [prefDeal, setPrefDeal] = useState(true);
+  const [prefs, setPrefs] = useState<NotificationPrefs>(loadPrefs);
+
+  // Persist ke localStorage setiap kali prefs berubah
+  useEffect(() => {
+    savePrefs(prefs);
+  }, [prefs]);
 
   async function handleEnablePush() {
     setTestResult(null);
@@ -271,7 +300,7 @@ export function PushNotificationSettings() {
           Kategori Push Notifikasi
         </h3>
         <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-          Sesuaikan jenis peristiwa yang ingin Anda terima sebagai push notification.
+          Sesuaikan jenis peristiwa yang ingin Anda terima sebagai push notification. Preferensi tersimpan secara lokal.
         </p>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -279,8 +308,8 @@ export function PushNotificationSettings() {
             <span>Rekomendasi Matching Otomatis</span>
             <input
               type="checkbox"
-              checked={prefMatch}
-              onChange={(e) => setPrefMatch(e.target.checked)}
+              checked={prefs.match}
+              onChange={(e) => setPrefs((p) => ({ ...p, match: e.target.checked }))}
               className="h-4 w-4 rounded accent-zinc-900"
             />
           </label>
@@ -289,8 +318,8 @@ export function PushNotificationSettings() {
             <span>Undangan Kolaborasi Masuk</span>
             <input
               type="checkbox"
-              checked={prefInvite}
-              onChange={(e) => setPrefInvite(e.target.checked)}
+              checked={prefs.invite}
+              onChange={(e) => setPrefs((p) => ({ ...p, invite: e.target.checked }))}
               className="h-4 w-4 rounded accent-zinc-900"
             />
           </label>
@@ -299,8 +328,8 @@ export function PushNotificationSettings() {
             <span>Pesan Chat Real-Time</span>
             <input
               type="checkbox"
-              checked={prefChat}
-              onChange={(e) => setPrefChat(e.target.checked)}
+              checked={prefs.chat}
+              onChange={(e) => setPrefs((p) => ({ ...p, chat: e.target.checked }))}
               className="h-4 w-4 rounded accent-zinc-900"
             />
           </label>
@@ -309,8 +338,8 @@ export function PushNotificationSettings() {
             <span>Perubahan Status & Tahapan Deal</span>
             <input
               type="checkbox"
-              checked={prefDeal}
-              onChange={(e) => setPrefDeal(e.target.checked)}
+              checked={prefs.deal}
+              onChange={(e) => setPrefs((p) => ({ ...p, deal: e.target.checked }))}
               className="h-4 w-4 rounded accent-zinc-900"
             />
           </label>

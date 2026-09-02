@@ -12,11 +12,15 @@ import {
 } from "lucide-react";
 import { useOpportunity } from "@/features/opportunity/opportunity.hooks";
 import { useBoostPlans, useActivateBoost } from "@/features/boost/boost.hooks";
+import { OpportunityStatus } from "@/features/opportunity/opportunity.schema";
 
-const statusColor: Record<string, string> = {
+// ✅ Fix: Type-safe status color mapping
+const statusColor: Record<OpportunityStatus, string> = {
+  DRAFT: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400",
   ACTIVE: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400",
   CLOSED: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400",
   EXPIRED: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400",
+  MATCHED: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400",
   CANCELLED: "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
 };
 
@@ -56,7 +60,7 @@ export default function OpportunityDetailPage({
   if (isLoading) {
     return (
       <div className="flex justify-center py-16">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-900 dark:border-zinc-700 dark:border-t-zinc-100" />
       </div>
     );
   }
@@ -71,7 +75,7 @@ export default function OpportunityDetailPage({
           <ArrowLeft className="h-4 w-4" />
           Kembali
         </Link>
-        <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-400">
+        <div className="rounded-xl bg-red-50 p-4 text-sm text-red-700 dark:bg-red-950/50 dark:text-red-400">
           {error instanceof Error ? error.message : "Opportunity tidak ditemukan"}
         </div>
       </div>
@@ -102,21 +106,21 @@ export default function OpportunityDetailPage({
         </div>
       )}
 
-      <div className="rounded-xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span
-              className={`rounded px-1.5 py-0.5 text-xs font-medium ${
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
                 opp.type === "NEED"
-                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400"
-                  : "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-400"
+                  ? "bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400"
+                  : "bg-violet-50 text-violet-700 dark:bg-violet-950/50 dark:text-violet-400"
               }`}
             >
               {opp.type}
             </span>
             <span
-              className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-                statusColor[opp.status] ?? statusColor.CLOSED
+              className={`rounded-lg px-2.5 py-1 text-xs font-semibold ${
+                statusColor[opp.status]
               }`}
             >
               {opp.status}
@@ -140,7 +144,7 @@ export default function OpportunityDetailPage({
           )}
         </div>
 
-        <h1 className="mt-3 text-xl font-semibold text-zinc-900 dark:text-zinc-50">
+        <h1 className="mt-3 text-xl font-bold text-zinc-900 dark:text-zinc-50">
           {opp.title}
         </h1>
 
@@ -186,7 +190,7 @@ export default function OpportunityDetailPage({
                 {opp.tags.map((tag) => (
                   <span
                     key={tag}
-                    className="rounded bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                    className="rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
                   >
                     {tag}
                   </span>
@@ -199,14 +203,14 @@ export default function OpportunityDetailPage({
         <div className="mt-6 flex flex-wrap gap-2 border-t border-zinc-100 pt-6 dark:border-zinc-800">
           <Link
             href={`/matching/${opp.id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 active:scale-[0.98] dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             <Sparkles className="h-4 w-4 text-amber-400" />
             Jalankan Matching Engine
           </Link>
           <Link
             href={`/chat?opportunityId=${opp.id}`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-4 py-2.5 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
           >
             Chat Terkait Opportunity
           </Link>
@@ -262,7 +266,7 @@ export default function OpportunityDetailPage({
                             <span className="font-semibold text-zinc-900 dark:text-zinc-100">
                               {plan.name}
                             </span>
-                            <span className="rounded bg-zinc-100 px-1.5 py-0.2 text-[10px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                            <span className="rounded bg-zinc-100 px-1.5 py-0.5 text-[10px] font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                               {plan.tier}
                             </span>
                           </div>

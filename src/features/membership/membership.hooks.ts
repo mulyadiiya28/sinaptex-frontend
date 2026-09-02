@@ -12,5 +12,11 @@ export function useMembershipStatus() {
 export function useMembershipCheckout() {
   return useMutation({
     mutationFn: (planId: string) => membershipApi.checkout(planId),
+    // ✅ Fix: Auto-redirect ke payment gateway setelah mendapat checkoutUrl
+    onSuccess: (data) => {
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      }
+    },
   });
 }

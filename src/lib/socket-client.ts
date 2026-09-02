@@ -4,6 +4,7 @@ import { getAccessToken } from "@/lib/supabase-client";
 const SOCKET_URL = (process.env.NEXT_PUBLIC_API_URL ?? "https://cahayaastera.com").replace(/\/api\/v1\/?$/, "");
 
 let socket: Socket | null = null;
+let connectingPromise: Promise<Socket> | null = null;
 
 /**
  * Socket.IO singleton untuk chat + notifikasi real-time.
@@ -15,6 +16,7 @@ let socket: Socket | null = null;
  */
 export async function connectSocket(): Promise<Socket> {
   if (socket?.connected) return socket;
+  if (connectingPromise) return connectingPromise;
 
   // Buang instance lama yang sedang reconnect dengan token basi
   if (socket) {
@@ -23,51 +25,60 @@ export async function connectSocket(): Promise<Socket> {
     socket = null;
   }
 
-  const token = await getAccessToken();
+  connectingPromise = (async () => {
+    const token = await getAccessToken();
 
-  socket = io(SOCKET_URL, {
-    auth: { token },
-    autoConnect: true,
-    // Selaras dengan server: utamakan WebSocket murni
-    transports: ["websocket", "polling"],
-    // Reconnect setelah putus (termasuk karena ping timeout)
-    reconnection: true,
-    reconnectionAttempts: Infinity,
-    reconnectionDelay: 1_000,
-    reconnectionDelayMax: 10_000,
-    // Timeout handshake awal (ms)
-    timeout: 20_000,
-  });
+    const newSocket = io(SOCKET_URL, {
+      auth: { token },
+      autoConnect: true,
+      // Selaras dengan server: utamakan WebSocket murni
+      transports: ["websocket", "polling"],
+      // Reconnect setelah putus (termasuk karena ping timeout)
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1_000,
+      reconnectionDelayMax: 10_000,
+      // Timeout handshake awal (ms)
+      timeout: 20_000,
+    });
 
-  // Setiap percobaan reconnect: kirim access token terbaru
-  socket.io.on("reconnect_attempt", async () => {
-    const latest = await getAccessToken();
-    if (socket) {
-      socket.auth = { token: latest };
-    }
-  });
+    // Setiap percobaan reconnect: kirim access token terbaru
+    newSocket.io.on("reconnect_attempt", async () => {
+      const latest = await getAccessToken();
+      if (newSocket) {
+        newSocket.auth = { token: latest };
+      }
+    });
 
-  socket.on("connect", () => {
-    if (process.env.NODE_ENV === "development") {
-      console.info("[socket] connected", socket?.id);
-    }
-  });
+    newSocket.on("connect", () => {
+      if (process.env.NODE_ENV === "development") {
+        console.info("[socket] connected", newSocket?.id);
+      }
+    });
 
-  socket.on("disconnect", (reason) => {
-    // reason: io client disconnect | io server disconnect | ping timeout |
-    //         transport close | transport error | ...
-    console.info("[socket] disconnect", reason);
-  });
+    newSocket.on("disconnect", (reason) => {
+      // reason: io client disconnect | io server disconnect | ping timeout |
+      //         transport close | transport error | ...
+      console.info("[socket] disconnect", reason);
+    });
 
-  socket.on("connect_error", (err) => {
-    console.warn("[socket] connect_error:", err.message);
-  });
+    newSocket.on("connect_error", (err) => {
+      console.warn("[socket] connect_error:", err.message);
+    });
 
-  socket.on("session:replaced", () => {
-    console.info("[socket] session replaced by another tab/device");
-  });
+    newSocket.on("session:replaced", () => {
+      console.info("[socket] session replaced by another tab/device");
+    });
 
-  return socket;
+    socket = newSocket;
+    return newSocket;
+  })();
+
+  try {
+    return await connectingPromise;
+  } finally {
+    connectingPromise = null;
+  }
 }
 
 export function disconnectSocket() {
@@ -76,6 +87,7 @@ export function disconnectSocket() {
   socket.io.removeAllListeners();
   socket.disconnect();
   socket = null;
+  connectingPromise = null;
 }
 
 export function getSocket(): Socket | null {

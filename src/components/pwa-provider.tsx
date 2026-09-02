@@ -6,6 +6,7 @@ import {
   requestNotificationPermission,
   sendLocalNotification,
   registerSerwistServiceWorker,
+  subscribeToPush,
   NotificationPermissionState,
 } from "@/lib/push-manager";
 import { WifiOff, Download, X } from "lucide-react";
@@ -80,7 +81,6 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Check if user dismissed prompt previously in session
       const dismissed = sessionStorage.getItem("sinaptex_install_dismissed");
       const isStandalone =
         window.matchMedia("(display-mode: standalone)").matches ||
@@ -109,9 +109,7 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function promptInstall() {
-    if (!deferredPrompt) {
-      return;
-    }
+    if (!deferredPrompt) return;
     try {
       await deferredPrompt.prompt();
       const choice = await deferredPrompt.userChoice;
@@ -135,19 +133,9 @@ export function PwaProvider({ children }: { children: React.ReactNode }) {
         url: "/notifications",
       });
 
-      // Register subscription with server
+      // ✅ Subscribe ke Push Service dengan VAPID
       try {
-        if ("serviceWorker" in navigator) {
-          const reg = await navigator.serviceWorker.ready;
-          const sub = await reg.pushManager.getSubscription();
-          if (sub) {
-            await fetch("/api/push/subscribe", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ subscription: sub }),
-            });
-          }
-        }
+        await subscribeToPush();
       } catch {
         // non-blocking
       }
